@@ -9,7 +9,7 @@ import { AchievementSystem } from './achievements.js';
 import { SettingsManager, DEFAULT_SETTINGS } from './settings.js';
 import { DailyChallengeSystem } from './dailyChallenge.js';
 import { StatsSystem } from './stats.js';
-import { SkinManager, SkinRenderer } from './skins.js';
+import { SkinManager } from './skins.js';
 
 const UI = {
   canvas: document.getElementById('gameCanvas'),
@@ -617,7 +617,7 @@ function handleSkinTabChange(e) {
 }
 
 function renderSkinsList() {
-  const allSkins = skinManager.getAllSkins();
+  const allSkins = skinManager.getAllSkins(currentSkinTab);
   const unlockedCount = allSkins.filter(s => s.unlocked).length;
   const totalCount = allSkins.length;
   
@@ -630,7 +630,7 @@ function renderSkinsList() {
     
     let statusHtml = '';
     if (isSelected) {
-      statusHtml = `<div class="skin-item-status selected">使用中</div>`;
+      statusHtml = `<div class="skin-item-status selected">${getSkinCategoryLabel(currentSkinTab)}使用中</div>`;
     } else if (isLocked) {
       statusHtml = `<div class="skin-item-status locked">未解锁</div>`;
     } else {
@@ -655,7 +655,7 @@ function renderSkinsList() {
       ? `<div class="skin-item-icon">${skin.icon}</div>`
       : `<div class="skin-item-preview"><canvas data-skin-id="${skin.id}" width="60" height="60"></canvas></div>`;
     
-    let displayDesc = skin.description;
+    let displayDesc = getSkinCategoryDescription(skin, currentSkinTab);
     if (isLocked && skin.unlock.description) {
       displayDesc = skin.unlock.description;
     }
@@ -679,7 +679,7 @@ function renderSkinsList() {
       if (skin.unlocked) {
         const canvas = UI.skinsContent.querySelector(`canvas[data-skin-id="${skin.id}"]`);
         if (canvas) {
-          renderSkinPreviewIcon(canvas, skin);
+          renderSkinPreviewIcon(canvas, skin, currentSkinTab);
         }
       }
     });
@@ -689,19 +689,67 @@ function renderSkinsList() {
     item.addEventListener('click', () => {
       const skinId = item.dataset.skinId;
       if (skinManager.isUnlocked(skinId)) {
-        skinManager.selectSkin(skinId);
+        skinManager.selectSkin(skinId, currentSkinTab);
         renderSkinsList();
       }
     });
   });
 }
 
-function renderSkinPreviewIcon(canvas, skin) {
+function getSkinCategoryLabel(category) {
+  switch (category) {
+    case 'trail':
+      return '拖尾';
+    case 'effect':
+      return '特效';
+    case 'player':
+    default:
+      return '外观';
+  }
+}
+
+function getSkinCategoryDescription(skin, category) {
+  switch (category) {
+    case 'trail':
+      return `拖尾颜色 ${skin.trail.color}，长度 ${skin.trail.length}`;
+    case 'effect':
+      return `拾取特效 ${getPickupEffectLabel(skin.pickupEffect.type)}，粒子 ${skin.pickupEffect.particleCount}`;
+    case 'player':
+    default:
+      return skin.description;
+  }
+}
+
+function getPickupEffectLabel(type) {
+  switch (type) {
+    case 'explosion':
+      return '爆裂';
+    case 'ring':
+      return '光环';
+    case 'rainbow':
+      return '彩虹';
+    case 'sparkle':
+    default:
+      return '星芒';
+  }
+}
+
+function renderSkinPreviewIcon(canvas, skin, category = 'player') {
   const ctx = canvas.getContext('2d');
   const size = canvas.width;
   const center = size / 2;
   
   ctx.clearRect(0, 0, size, size);
+
+  if (category === 'trail') {
+    renderTrailPreviewIcon(ctx, skin, size, center);
+    return;
+  }
+
+  if (category === 'effect') {
+    renderEffectPreviewIcon(ctx, skin, size, center);
+    return;
+  }
   
   const playerSkin = skin.player;
   let bodyColor = playerSkin.color;
@@ -766,6 +814,88 @@ function renderSkinPreviewIcon(canvas, skin) {
   ctx.fill();
   
   ctx.restore();
+}
+
+function renderTrailPreviewIcon(ctx, skin, size, center) {
+  const trail = skin.trail;
+  const count = Math.min(6, Math.max(4, Math.round(trail.length / 3)));
+  
+  for (let i = 0; i < count; i++) {
+    const progress = i / (count - 1);
+    const alpha = 0.25 + progress * 0.55;
+    const radius = size * (0.08 + progress * 0.06);
+    const x = size * (0.2 + progress * 0.6);
+    const y = center + Math.sin(progress * Math.PI * 1.2) * size * 0.18;
+    let color = trail.color;
+    
+    if (trail.rainbow) {
+      color = `hsl(${progress * 300}, 80%, 60%)`;
+    }
+    
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = color;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function renderEffectPreviewIcon(ctx, skin, size, center) {
+  const effect = skin.pickupEffect;
+  const count = Math.min(10, effect.particleCount || 8);
+  
+  if (effect.type === 'ring') {
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.strokeStyle = effect.color;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = effect.color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(center, center, size * 0.28, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const radius = size * 0.27;
+    let color = effect.color;
+    
+    if (effect.type === 'rainbow') {
+      color = `hsl(${(i / count) * 360}, 80%, 60%)`;
+    }
+    
+    ctx.save();
+    ctx.translate(center + Math.cos(angle) * radius, center + Math.sin(angle) * radius);
+    ctx.rotate(angle);
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = color;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    if (effect.type === 'sparkle' || effect.type === 'rainbow') {
+      for (let j = 0; j < 8; j++) {
+        const starAngle = (j * Math.PI) / 4 - Math.PI / 2;
+        const r = j % 2 === 0 ? size * 0.08 : size * 0.035;
+        const x = Math.cos(starAngle) * r;
+        const y = Math.sin(starAngle) * r;
+        if (j === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+    } else {
+      ctx.arc(0, 0, size * 0.045, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function startSkinPreviewAnimation() {

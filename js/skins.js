@@ -9,7 +9,11 @@ export class SkinManager {
     this.storageKey = CONFIG.storage.skinsKey;
     
     this.unlockedSkins = {};
-    this.currentSkinId = DEFAULT_SKIN_ID;
+    this.selectedSkinIds = {
+      player: DEFAULT_SKIN_ID,
+      trail: DEFAULT_SKIN_ID,
+      effect: DEFAULT_SKIN_ID
+    };
     this.changeCallbacks = [];
     
     this.load();
@@ -20,7 +24,12 @@ export class SkinManager {
       const saved = this.storageManager.get(this.storageKey, null);
       if (saved) {
         this.unlockedSkins = saved.unlocked || {};
-        this.currentSkinId = saved.current || DEFAULT_SKIN_ID;
+        const legacyCurrent = saved.current || DEFAULT_SKIN_ID;
+        this.selectedSkinIds = {
+          player: saved.selected?.player || legacyCurrent,
+          trail: saved.selected?.trail || legacyCurrent,
+          effect: saved.selected?.effect || legacyCurrent
+        };
       }
       
       const defaultSkins = this.skins.filter(s => s.unlock.type === 'default');
@@ -29,12 +38,18 @@ export class SkinManager {
           this.unlockedSkins[skin.id] = { unlockedAt: Date.now() };
         }
       });
+
+      this.ensureValidSelections();
       
       this.save();
     } catch (e) {
       console.warn('加载皮肤数据失败，使用默认皮肤:', e);
       this.unlockedSkins = {};
-      this.currentSkinId = DEFAULT_SKIN_ID;
+      this.selectedSkinIds = {
+        player: DEFAULT_SKIN_ID,
+        trail: DEFAULT_SKIN_ID,
+        effect: DEFAULT_SKIN_ID
+      };
       const defaultSkins = this.skins.filter(s => s.unlock.type === 'default');
       defaultSkins.forEach(skin => {
         this.unlockedSkins[skin.id] = { unlockedAt: Date.now() };
@@ -42,11 +57,21 @@ export class SkinManager {
     }
   }
 
+  ensureValidSelections() {
+    ['player', 'trail', 'effect'].forEach(category => {
+      const selectedId = this.selectedSkinIds[category];
+      if (!this.isUnlocked(selectedId)) {
+        this.selectedSkinIds[category] = DEFAULT_SKIN_ID;
+      }
+    });
+  }
+
   save() {
     try {
       this.storageManager.set(this.storageKey, {
         unlocked: this.unlockedSkins,
-        current: this.currentSkinId
+        current: this.selectedSkinIds.player,
+        selected: this.selectedSkinIds
       });
       return true;
     } catch (e) {
@@ -109,33 +134,52 @@ export class SkinManager {
     return true;
   }
 
-  selectSkin(skinId) {
+  selectSkin(skinId, category = 'player') {
     if (!this.isUnlocked(skinId)) return false;
+    if (!['player', 'trail', 'effect'].includes(category)) return false;
     
-    const oldSkinId = this.currentSkinId;
-    this.currentSkinId = skinId;
+    const oldSkinId = this.selectedSkinIds[category];
+    this.selectedSkinIds[category] = skinId;
     this.save();
-    this.notifyChange('select', skinId, oldSkinId);
+    this.notifyChange('select', { category, skinId }, oldSkinId);
     return true;
   }
 
   getCurrentSkin() {
-    return this.getSkin(this.currentSkinId) || this.getSkin(DEFAULT_SKIN_ID);
+    const playerSkin = this.getSelectedSkin('player');
+    const trailSkin = this.getSelectedSkin('trail');
+    const effectSkin = this.getSelectedSkin('effect');
+
+    return {
+      ...playerSkin,
+      player: playerSkin.player,
+      trail: trailSkin.trail,
+      pickupEffect: effectSkin.pickupEffect,
+      selected: { ...this.selectedSkinIds }
+    };
   }
 
-  getCurrentSkinId() {
-    return this.currentSkinId;
+  getSelectedSkin(category = 'player') {
+    return this.getSkin(this.selectedSkinIds[category]) || this.getSkin(DEFAULT_SKIN_ID);
+  }
+
+  getCurrentSkinId(category = 'player') {
+    return this.selectedSkinIds[category] || DEFAULT_SKIN_ID;
+  }
+
+  getCurrentSelectionIds() {
+    return { ...this.selectedSkinIds };
   }
 
   getSkin(skinId) {
     return this.skins.find(s => s.id === skinId) || null;
   }
 
-  getAllSkins() {
+  getAllSkins(category = 'player') {
     return this.skins.map(skin => ({
       ...skin,
       unlocked: this.isUnlocked(skin.id),
-      selected: skin.id === this.currentSkinId,
+      selected: this.isSelected(skin.id, category),
       unlockedAt: this.unlockedSkins[skin.id]?.unlockedAt || null
     }));
   }
@@ -148,8 +192,8 @@ export class SkinManager {
     return !!this.unlockedSkins[skinId];
   }
 
-  isSelected(skinId) {
-    return this.currentSkinId === skinId;
+  isSelected(skinId, category = 'player') {
+    return this.selectedSkinIds[category] === skinId;
   }
 
   getUnlockProgress(skinId) {
@@ -194,31 +238,36 @@ export class SkinManager {
   }
 
   applySkinToPlayer(player) {
-    const skin = this.getCurrentSkin();
-    if (!skin || !player) return;
+    const playerSkin = this.getSelectedSkin('player');
+    const trailSkin = this.getSelectedSkin('trail');
+    if (!playerSkin || !trailSkin || !player) return;
     
     player.config = {
       ...player.config,
-      color: skin.player.color,
-      glowColor: skin.player.glowColor,
-      innerColor: skin.player.innerColor,
-      outerColor: skin.player.outerColor,
-      shape: skin.player.shape,
-      rainbow: skin.player.rainbow,
-      trailLength: skin.trail.length,
-      trailColor: skin.trail.color,
-      trailRainbow: skin.trail.rainbow
+      color: playerSkin.player.color,
+      glowColor: playerSkin.player.glowColor,
+      innerColor: playerSkin.player.innerColor,
+      outerColor: playerSkin.player.outerColor,
+      shape: playerSkin.player.shape,
+      rainbow: playerSkin.player.rainbow,
+      trailLength: trailSkin.trail.length,
+      trailColor: trailSkin.trail.color,
+      trailRainbow: trailSkin.trail.rainbow
     };
   }
 
   getPickupEffectConfig() {
-    const skin = this.getCurrentSkin();
+    const skin = this.getSelectedSkin('effect');
     return skin ? skin.pickupEffect : null;
   }
 
   reset() {
     this.unlockedSkins = {};
-    this.currentSkinId = DEFAULT_SKIN_ID;
+    this.selectedSkinIds = {
+      player: DEFAULT_SKIN_ID,
+      trail: DEFAULT_SKIN_ID,
+      effect: DEFAULT_SKIN_ID
+    };
     
     const defaultSkins = this.skins.filter(s => s.unlock.type === 'default');
     defaultSkins.forEach(skin => {
