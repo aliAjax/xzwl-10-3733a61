@@ -89,7 +89,8 @@ export const GAME_STATES = {
   PLAYING: 'playing',
   PAUSED: 'paused',
   GAME_OVER: 'gameover',
-  TRAINING: 'training'
+  TRAINING: 'training',
+  REPLAY: 'replay'
 };
 
 export const TRAINING_PRESETS = {

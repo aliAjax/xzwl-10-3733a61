@@ -3,6 +3,7 @@ import { Player } from './player.js';
 import { Star, Obstacle } from './entities.js';
 import { CollisionDetector } from './collision.js';
 import { PickupEffect } from './skins.js';
+import { ReplayManager } from './replay.js';
 
 export class Game {
   constructor(canvas, config) {
@@ -56,6 +57,9 @@ export class Game {
       powerupsUsed: 0,
       startTime: 0
     };
+    
+    this.replayManager = new ReplayManager();
+    this.isReplayMode = false;
     
     this.initBackgroundStars();
   }
@@ -111,6 +115,8 @@ export class Game {
     if (this.statsSystem) {
       this.statsSystem.startNewSession();
     }
+    
+    this.replayManager.startRecording(this);
     
     if (this.onStateChange) this.onStateChange(this.state);
     if (this.audioSystem && this.soundEnabled) this.audioSystem.play('start');
@@ -252,14 +258,17 @@ export class Game {
     
     const isNewRecord = this.scoreManager.saveHighScore();
     
-    if (this.dailyChallengeSystem) {
+    if (this.dailyChallengeSystem && !this.isReplayMode) {
       this.dailyChallengeSystem.notify('game_over', this.getLevel());
     }
     
     let sessionStats = null;
-    if (this.statsSystem) {
+    if (this.statsSystem && !this.isReplayMode) {
       sessionStats = this.statsSystem.endSession();
     }
+    
+    const recording = this.replayManager.stopRecording(this, isNewRecord);
+    console.log('🎥 录像已保存，时长:', recording ? Math.round(recording.duration / 1000) + 's' : '无');
     
     if (this.onStateChange) this.onStateChange(this.state);
     if (this.onGameOver) this.onGameOver(this.scoreManager.getScore(), isNewRecord, sessionStats);
@@ -280,6 +289,11 @@ export class Game {
 
   update(deltaTime) {
     const direction = this.inputManager.getDirection();
+    
+    if (this.state === GAME_STATES.PLAYING) {
+      this.replayManager.recordFrame(this, direction);
+    }
+    
     this.player.move(direction.dx, direction.dy, deltaTime);
     this.player.update(deltaTime);
     
@@ -305,7 +319,7 @@ export class Game {
     if (this.powerUpSystem) this.powerUpSystem.update(deltaTime);
     if (this.enemySystem) this.enemySystem.update(deltaTime);
     
-    if (!this.isTrainingMode) {
+    if (!this.isTrainingMode && !this.isReplayMode) {
       if (this.levelSystem) this.levelSystem.update(deltaTime);
       if (this.achievementSystem) this.achievementSystem.check(this);
       
@@ -391,6 +405,14 @@ export class Game {
       this.powerUpSystem.modifyEntity(star);
     }
     
+    if (this.state === GAME_STATES.PLAYING) {
+      this.replayManager.recordEntitySpawn('star', {
+        x: x,
+        y: y,
+        config: this.config.star
+      });
+    }
+    
     this.entities.push(star);
   }
 
@@ -410,6 +432,17 @@ export class Game {
     
     if (this.enemySystem) {
       this.enemySystem.modifyEntity(obstacle);
+    }
+    
+    if (this.state === GAME_STATES.PLAYING) {
+      this.replayManager.recordEntitySpawn('obstacle', {
+        x: x,
+        y: y,
+        vx: obstacle.vx,
+        vy: obstacle.vy,
+        vertices: obstacle.vertices,
+        config: obstacleConfig
+      });
     }
     
     this.entities.push(obstacle);
@@ -442,6 +475,15 @@ export class Game {
   }
 
   handleCollisionResult(result, entity) {
+    if (this.state === GAME_STATES.PLAYING && entity) {
+      this.replayManager.recordCollision(result.type, {
+        entityType: entity.type,
+        x: entity.x,
+        y: entity.y,
+        value: result.value
+      });
+    }
+
     switch (result.type) {
       case 'score':
         this.scoreManager.addScore(result.value);
@@ -461,7 +503,7 @@ export class Game {
         
         if (this.isTrainingMode) {
           this.trainingStats.starsCollected += 1;
-        } else {
+        } else if (!this.isReplayMode) {
           if (this.achievementSystem) {
             this.achievementSystem.notify('star_collected', result.value);
           }
@@ -480,7 +522,7 @@ export class Game {
           if (this.onLivesChange) this.onLivesChange(this.player.getLives());
           if (this.audioSystem && this.soundEnabled) this.audioSystem.play('hit');
           
-          if (!this.isTrainingMode) {
+          if (!this.isTrainingMode && !this.isReplayMode) {
             if (this.achievementSystem) {
               this.achievementSystem.notify('damage_taken', result.value);
             }
@@ -503,7 +545,7 @@ export class Game {
         if (this.onLivesChange) this.onLivesChange(this.player.getLives());
         if (this.audioSystem && this.soundEnabled) this.audioSystem.play('heal');
         
-        if (!this.isTrainingMode && this.dailyChallengeSystem) {
+        if (!this.isTrainingMode && !this.isReplayMode && this.dailyChallengeSystem) {
           this.dailyChallengeSystem.notify('heal_used', result.value);
         }
         break;

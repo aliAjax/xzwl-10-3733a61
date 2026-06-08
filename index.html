@@ -188,6 +188,60 @@
           </div>
           
           <button class="btn btn-primary" id="restartBtn">再来一局</button>
+          <button class="btn btn-secondary" id="watchReplayBtn" style="display: none;">🎬 观看回放</button>
+        </div>
+      </div>
+      
+      <div class="overlay hidden" id="replayOverlay">
+        <div class="overlay-content">
+          <h2 class="overlay-title">🎬 游戏回放</h2>
+          
+          <div class="replay-info">
+            <div class="replay-info-item">
+              <span class="replay-info-label">最终得分</span>
+              <span class="replay-info-value" id="replayFinalScore">0</span>
+            </div>
+            <div class="replay-info-item">
+              <span class="replay-info-label">最高等级</span>
+              <span class="replay-info-value" id="replayFinalLevel">1</span>
+            </div>
+            <div class="replay-info-item">
+              <span class="replay-info-label">回放时长</span>
+              <span class="replay-info-value" id="replayDuration">00:00</span>
+            </div>
+          </div>
+          
+          <div class="replay-stats-bar">
+            <div class="replay-stat">
+              <span class="replay-stat-icon">⭐</span>
+              <span class="replay-stat-value" id="replayCurrentScore">0</span>
+            </div>
+            <div class="replay-stat">
+              <span class="replay-stat-icon">❤️</span>
+              <span class="replay-stat-value" id="replayCurrentLives">❤️❤️❤️</span>
+            </div>
+            <div class="replay-stat">
+              <span class="replay-stat-icon">📊</span>
+              <span class="replay-stat-value" id="replayCurrentLevel">1</span>
+            </div>
+          </div>
+          
+          <div class="replay-progress-container">
+            <span class="replay-time" id="replayCurrentTime">00:00</span>
+            <div class="replay-progress-bar" id="replayProgressBar">
+              <div class="replay-progress-fill" id="replayProgressFill"></div>
+            </div>
+            <span class="replay-time" id="replayTotalTime">00:00</span>
+          </div>
+          
+          <div class="replay-controls">
+            <button class="btn btn-replay-control" id="replayPlayPauseBtn">▶️ 播放</button>
+            <button class="btn btn-replay-control" id="replayRestartBtn">🔄 重播</button>
+            <button class="btn btn-replay-control" id="replaySpeedBtn">⏩ 1x</button>
+            <button class="btn btn-replay-control" id="replayExitBtn">✕ 退出</button>
+          </div>
+          
+          <button class="btn btn-secondary" id="replayBackBtn">← 返回结束页</button>
         </div>
       </div>
     </div>

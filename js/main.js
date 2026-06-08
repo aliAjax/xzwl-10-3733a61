@@ -10,6 +10,7 @@ import { SettingsManager, DEFAULT_SETTINGS } from './settings.js';
 import { DailyChallengeSystem } from './dailyChallenge.js';
 import { StatsSystem } from './stats.js';
 import { SkinManager } from './skins.js';
+import { REPLAY_STATES } from './replay.js';
 
 const UI = {
   canvas: document.getElementById('gameCanvas'),
@@ -77,10 +78,28 @@ const UI = {
   trainingBackBtn: document.getElementById('trainingBackBtn'),
   presetItems: document.querySelectorAll('.preset-item'),
   trainingControls: document.getElementById('trainingControls'),
+  trainingStats: document.getElementById('trainingStats'),
   trainingStars: document.getElementById('trainingStars'),
   trainingTime: document.getElementById('trainingTime'),
   presetSelect: document.getElementById('presetSelect'),
-  exitTrainingBtn: document.getElementById('exitTrainingBtn')
+  exitTrainingBtn: document.getElementById('exitTrainingBtn'),
+  watchReplayBtn: document.getElementById('watchReplayBtn'),
+  replayOverlay: document.getElementById('replayOverlay'),
+  replayFinalScore: document.getElementById('replayFinalScore'),
+  replayFinalLevel: document.getElementById('replayFinalLevel'),
+  replayDuration: document.getElementById('replayDuration'),
+  replayCurrentScore: document.getElementById('replayCurrentScore'),
+  replayCurrentLives: document.getElementById('replayCurrentLives'),
+  replayCurrentLevel: document.getElementById('replayCurrentLevel'),
+  replayCurrentTime: document.getElementById('replayCurrentTime'),
+  replayTotalTime: document.getElementById('replayTotalTime'),
+  replayProgressBar: document.getElementById('replayProgressBar'),
+  replayProgressFill: document.getElementById('replayProgressFill'),
+  replayPlayPauseBtn: document.getElementById('replayPlayPauseBtn'),
+  replayRestartBtn: document.getElementById('replayRestartBtn'),
+  replaySpeedBtn: document.getElementById('replaySpeedBtn'),
+  replayExitBtn: document.getElementById('replayExitBtn'),
+  replayBackBtn: document.getElementById('replayBackBtn')
 };
 
 const storage = new StorageManager();
@@ -126,6 +145,7 @@ function hideAllOverlays() {
   UI.pauseOverlay.classList.add('hidden');
   UI.gameOverOverlay.classList.add('hidden');
   UI.trainingOverlay.classList.add('hidden');
+  UI.replayOverlay.classList.add('hidden');
 }
 
 function updateDailyChallengeCard() {
@@ -281,6 +301,12 @@ function handleGameOver(score, isNewRecord, sessionStats) {
     UI.newRecordEl.classList.add('hidden');
   }
   
+  if (game.replayManager && game.replayManager.hasLastRecording()) {
+    UI.watchReplayBtn.style.display = 'inline-block';
+  } else {
+    UI.watchReplayBtn.style.display = 'none';
+  }
+  
   updateHighScoreUI();
   updateChallengeResult();
   UI.gameOverOverlay.classList.remove('hidden');
@@ -364,6 +390,112 @@ function exitTraining() {
   game.exitTraining();
 }
 
+let replayPlayer = null;
+let currentPlaybackSpeed = 1;
+const playbackSpeeds = [0.5, 1, 1.5, 2];
+
+function formatTime(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function updateReplayLivesUI(lives) {
+  const hearts = '❤️'.repeat(Math.max(0, lives));
+  const empty = '🖤'.repeat(Math.max(0, CONFIG.game.initialLives - lives));
+  return hearts + empty;
+}
+
+function openReplay() {
+  if (!game.replayManager || !game.replayManager.hasLastRecording()) return;
+
+  hideAllOverlays();
+
+  replayPlayer = game.replayManager.startReplay(UI.canvas, game);
+  if (!replayPlayer) return;
+
+  game.isReplayMode = true;
+
+  const recording = game.replayManager.getLastRecording();
+
+  UI.replayFinalScore.textContent = recording.finalScore;
+  UI.replayFinalLevel.textContent = recording.finalLevel;
+  UI.replayDuration.textContent = formatTime(recording.duration);
+  UI.replayTotalTime.textContent = formatTime(recording.duration);
+  UI.replayCurrentTime.textContent = '00:00';
+  UI.replayProgressFill.style.width = '0%';
+  UI.replayCurrentScore.textContent = '0';
+  UI.replayCurrentLives.textContent = updateReplayLivesUI(recording.initialState.player.lives);
+  UI.replayCurrentLevel.textContent = '1';
+
+  replayPlayer.onStateChange = handleReplayStateChange;
+  replayPlayer.onProgressChange = handleReplayProgressChange;
+
+  UI.replayPlayPauseBtn.textContent = '▶️ 播放';
+  UI.replaySpeedBtn.textContent = `⏩ ${currentPlaybackSpeed}x`;
+
+  UI.replayOverlay.classList.remove('hidden');
+}
+
+function closeReplay() {
+  if (replayPlayer) {
+    replayPlayer.stop();
+  }
+  game.replayManager.stopReplay();
+  replayPlayer = null;
+  game.isReplayMode = false;
+
+  hideAllOverlays();
+  UI.gameOverOverlay.classList.remove('hidden');
+  updateHighScoreUI();
+  game.renderIdle();
+}
+
+function handleReplayStateChange(state) {
+  if (state === REPLAY_STATES.PLAYING) {
+    UI.replayPlayPauseBtn.textContent = '⏸️ 暂停';
+  } else {
+    UI.replayPlayPauseBtn.textContent = '▶️ 播放';
+  }
+}
+
+function handleReplayProgressChange(progress, currentTime, totalTime) {
+  UI.replayProgressFill.style.width = `${progress * 100}%`;
+  UI.replayCurrentTime.textContent = formatTime(currentTime);
+
+  if (replayPlayer) {
+    UI.replayCurrentScore.textContent = replayPlayer.getCurrentScore();
+    UI.replayCurrentLives.textContent = updateReplayLivesUI(replayPlayer.getCurrentLives());
+    UI.replayCurrentLevel.textContent = replayPlayer.getCurrentLevel();
+  }
+}
+
+function handleReplaySeek(e) {
+  if (!replayPlayer) return;
+
+  const rect = UI.replayProgressBar.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const progress = Math.max(0, Math.min(1, clickX / rect.width));
+  const targetTime = progress * replayPlayer.getDuration();
+  replayPlayer.seekTo(targetTime);
+}
+
+function handleReplaySpeed() {
+  const currentIndex = playbackSpeeds.indexOf(currentPlaybackSpeed);
+  const nextIndex = (currentIndex + 1) % playbackSpeeds.length;
+  currentPlaybackSpeed = playbackSpeeds[nextIndex];
+  UI.replaySpeedBtn.textContent = `⏩ ${currentPlaybackSpeed}x`;
+
+  if (replayPlayer) {
+    replayPlayer.setPlaybackSpeed(currentPlaybackSpeed);
+  }
+}
+
+function backToGameOver() {
+  closeReplay();
+}
+
 UI.trainingBtn.addEventListener('click', openTraining);
 UI.trainingBackBtn.addEventListener('click', closeTraining);
 
@@ -404,6 +536,22 @@ UI.restartBtn2.addEventListener('click', () => {
 UI.restartFromPauseBtn.addEventListener('click', () => {
   game.restart();
 });
+
+UI.watchReplayBtn.addEventListener('click', openReplay);
+UI.replayPlayPauseBtn.addEventListener('click', () => {
+  if (replayPlayer) {
+    replayPlayer.togglePlayPause();
+  }
+});
+UI.replayRestartBtn.addEventListener('click', () => {
+  if (replayPlayer) {
+    replayPlayer.replay();
+  }
+});
+UI.replaySpeedBtn.addEventListener('click', handleReplaySpeed);
+UI.replayExitBtn.addEventListener('click', closeReplay);
+UI.replayBackBtn.addEventListener('click', backToGameOver);
+UI.replayProgressBar.addEventListener('click', handleReplaySeek);
 
 function resizeCanvas() {
   const wrapper = UI.canvas.parentElement;

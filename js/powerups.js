@@ -57,6 +57,16 @@ export class PowerUpSystem {
     const typeConfig = { ...this.config.types[type], lifetime: this.config.lifetime };
     
     const powerUp = new PowerUp(x, y, type, typeConfig);
+    
+    if (this.game && this.game.state === 'playing' && this.game.replayManager) {
+      this.game.replayManager.recordEntitySpawn('powerup', {
+        x: x,
+        y: y,
+        powerUpType: type,
+        config: typeConfig
+      });
+    }
+    
     entities.push(powerUp);
   }
 
@@ -72,7 +82,7 @@ export class PowerUpSystem {
         if (result) {
           this.applyPowerUp(result.powerUpType, result.config, player);
           this.addPickupEffect(entity.x, entity.y, result.config);
-          if (this.game && this.game.statsSystem && !this.game.isTrainingMode) {
+          if (this.game && this.game.statsSystem && !this.game.isTrainingMode && !this.game.isReplayMode) {
             this.game.statsSystem.notify('powerup_picked', 1);
           }
           if (this.game && this.game.isTrainingMode) {
@@ -132,7 +142,7 @@ export class PowerUpSystem {
     if (this.game.onLivesChange) {
       this.game.onLivesChange(player.getLives());
     }
-    if (this.game.dailyChallengeSystem && !this.game.isTrainingMode) {
+    if (this.game.dailyChallengeSystem && !this.game.isTrainingMode && !this.game.isReplayMode) {
       this.game.dailyChallengeSystem.notify('heal_used', config.healAmount);
     }
   }
