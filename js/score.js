@@ -5,6 +5,7 @@ export class ScoreManager {
     this.storage = storage;
     this.score = 0;
     this.highScore = this.loadHighScore();
+    this._onScoreChange = null;
   }
 
   loadHighScore() {
@@ -21,9 +22,11 @@ export class ScoreManager {
   }
 
   addScore(points) {
+    const oldScore = this.score;
     this.score += points;
-    if (this.onScoreChange) {
-      this.onScoreChange(this.score);
+    console.log(`[ScoreManager] addScore: ${oldScore} + ${points} = ${this.score}`);
+    if (this._onScoreChange) {
+      this._onScoreChange(this.score);
     }
   }
 
@@ -37,12 +40,13 @@ export class ScoreManager {
 
   reset() {
     this.score = 0;
-    if (this.onScoreChange) {
-      this.onScoreChange(this.score);
+    console.log(`[ScoreManager] reset: score = ${this.score}`);
+    if (this._onScoreChange) {
+      this._onScoreChange(this.score);
     }
   }
 
   onScoreChange(callback) {
-    this.onScoreChange = callback;
+    this._onScoreChange = callback;
   }
 }

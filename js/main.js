@@ -32,9 +32,9 @@ const levelSystem = new LevelSystem(CONFIG.levels);
 const game = new Game(UI.canvas, CONFIG);
 
 game.init(scoreManager, inputManager);
-game.registerLevelSystem(levelSystem);
 
 function updateScoreUI(score) {
+  console.log(`[UI] updateScoreUI: ${score}`);
   UI.scoreEl.textContent = score;
 }
 
@@ -49,6 +49,7 @@ function updateHighScoreUI() {
 }
 
 function updateLevelUI(level) {
+  console.log(`[UI] updateLevelUI: ${level}`);
   UI.levelEl.textContent = level;
 }
 
@@ -105,6 +106,8 @@ game.onScoreChange = updateScoreUI;
 game.onLivesChange = updateLivesUI;
 game.onLevelChange = updateLevelUI;
 game.onGameOver = handleGameOver;
+
+game.registerLevelSystem(levelSystem);
 
 UI.startBtn.addEventListener('click', () => {
   game.start();

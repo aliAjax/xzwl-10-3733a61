@@ -56,6 +56,10 @@ export class Game {
     this.scoreManager = scoreManager;
     this.inputManager = inputManager;
     
+    this.scoreManager.onScoreChange((score) => {
+      if (this.onScoreChange) this.onScoreChange(score);
+    });
+    
     this.player = new Player(
       this.width / 2,
       this.height / 2,
@@ -125,6 +129,7 @@ export class Game {
   }
 
   reset() {
+    console.log('[Game] reset: clearing entities and timers');
     this.entities = [];
     this.starSpawnTimer = 0;
     this.obstacleSpawnTimer = 0;
@@ -138,7 +143,6 @@ export class Game {
     );
     this.player.setLives(this.config.game.initialLives);
     
-    if (this.onScoreChange) this.onScoreChange(this.scoreManager.getScore());
     if (this.onLivesChange) this.onLivesChange(this.player.getLives());
   }
 
@@ -296,7 +300,6 @@ export class Game {
     switch (result.type) {
       case 'score':
         this.scoreManager.addScore(result.value);
-        if (this.onScoreChange) this.onScoreChange(this.scoreManager.getScore());
         if (this.audioSystem) this.audioSystem.play('collect');
         if (this.achievementSystem) {
           this.achievementSystem.notify('star_collected', result.value);
@@ -402,15 +405,15 @@ export class Game {
 
   registerLevelSystem(system) {
     this.levelSystem = system;
-    if (system && system.onRegister) {
-      system.onRegister(this);
-    }
     if (system) {
       system.onLevelChange = (level) => {
         if (this.onLevelChange) {
           this.onLevelChange(level);
         }
       };
+      if (system.onRegister) {
+        system.onRegister(this);
+      }
     }
   }
 
