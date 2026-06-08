@@ -10,6 +10,7 @@ export class Player {
     this.baseSpeed = config.speed;
     this.speed = config.speed;
     this.speedMultiplier = 1;
+    this.settingsSpeedMultiplier = 1;
     this.bounds = bounds;
     this.lives = 3;
     this.invincible = false;
@@ -20,7 +21,7 @@ export class Player {
   }
 
   move(dx, dy, deltaTime) {
-    const moveSpeed = this.speed * this.speedMultiplier;
+    const moveSpeed = this.speed * this.speedMultiplier * this.settingsSpeedMultiplier;
     this.x += dx * moveSpeed;
     this.y += dy * moveSpeed;
 
@@ -131,6 +132,10 @@ export class Player {
 
   setSpeedMultiplier(multiplier) {
     this.speedMultiplier = multiplier;
+  }
+
+  setSettingsSpeedMultiplier(multiplier) {
+    this.settingsSpeedMultiplier = multiplier;
   }
 
   getLives() {

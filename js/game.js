@@ -30,12 +30,17 @@ export class Game {
     this.enemySystem = null;
     this.achievementSystem = null;
     this.audioSystem = null;
+    this.settingsManager = null;
+    
+    this.soundEnabled = true;
+    this.speedMultiplier = 1.0;
     
     this.onStateChange = null;
     this.onScoreChange = null;
     this.onLivesChange = null;
     this.onLevelChange = null;
     this.onGameOver = null;
+    this.onSettingsChange = null;
     
     this.initBackgroundStars();
   }
@@ -89,7 +94,7 @@ export class Game {
     this.lastTime = performance.now();
     
     if (this.onStateChange) this.onStateChange(this.state);
-    if (this.audioSystem) this.audioSystem.play('start');
+    if (this.audioSystem && this.soundEnabled) this.audioSystem.play('start');
     
     this.gameLoop();
   }
@@ -103,7 +108,7 @@ export class Game {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
-    if (this.audioSystem) this.audioSystem.play('pause');
+    if (this.audioSystem && this.soundEnabled) this.audioSystem.play('pause');
   }
 
   resume() {
@@ -112,7 +117,7 @@ export class Game {
     this.state = GAME_STATES.PLAYING;
     this.lastTime = performance.now();
     if (this.onStateChange) this.onStateChange(this.state);
-    if (this.audioSystem) this.audioSystem.play('resume');
+    if (this.audioSystem && this.soundEnabled) this.audioSystem.play('resume');
     
     this.gameLoop();
   }
@@ -157,7 +162,7 @@ export class Game {
     
     if (this.onStateChange) this.onStateChange(this.state);
     if (this.onGameOver) this.onGameOver(this.scoreManager.getScore(), isNewRecord);
-    if (this.audioSystem) this.audioSystem.play('gameover');
+    if (this.audioSystem && this.soundEnabled) this.audioSystem.play('gameover');
   }
 
   gameLoop(currentTime = performance.now()) {
@@ -302,7 +307,7 @@ export class Game {
     switch (result.type) {
       case 'score':
         this.scoreManager.addScore(result.value);
-        if (this.audioSystem) this.audioSystem.play('collect');
+        if (this.audioSystem && this.soundEnabled) this.audioSystem.play('collect');
         if (this.achievementSystem) {
           this.achievementSystem.notify('star_collected', result.value);
         }
@@ -311,7 +316,7 @@ export class Game {
       case 'damage':
         if (this.player.takeDamage(result.value)) {
           if (this.onLivesChange) this.onLivesChange(this.player.getLives());
-          if (this.audioSystem) this.audioSystem.play('hit');
+          if (this.audioSystem && this.soundEnabled) this.audioSystem.play('hit');
           if (this.achievementSystem) {
             this.achievementSystem.notify('damage_taken', result.value);
           }
@@ -325,7 +330,7 @@ export class Game {
       case 'heal':
         this.player.heal(result.value);
         if (this.onLivesChange) this.onLivesChange(this.player.getLives());
-        if (this.audioSystem) this.audioSystem.play('heal');
+        if (this.audioSystem && this.soundEnabled) this.audioSystem.play('heal');
         break;
     }
   }
@@ -444,6 +449,55 @@ export class Game {
     this.audioSystem = system;
     if (system && system.onRegister) {
       system.onRegister(this);
+    }
+  }
+
+  registerSettingsManager(system) {
+    this.settingsManager = system;
+    if (system) {
+      this.soundEnabled = system.get('soundEnabled');
+      this.speedMultiplier = system.getSpeedMultiplier();
+      
+      if (this.player) {
+        this.player.setSettingsSpeedMultiplier(this.speedMultiplier);
+      }
+      
+      system.onChange((key, newValue, oldValue) => {
+        this.handleSettingsChange(key, newValue, oldValue);
+      });
+      
+      if (system.onRegister) {
+        system.onRegister(this);
+      }
+    }
+  }
+
+  handleSettingsChange(key, newValue, oldValue) {
+    switch (key) {
+      case 'soundEnabled':
+        this.soundEnabled = newValue;
+        break;
+      case 'speedLevel':
+        this.speedMultiplier = this.settingsManager.getSpeedMultiplier();
+        if (this.player) {
+          this.player.setSettingsSpeedMultiplier(this.speedMultiplier);
+        }
+        break;
+    }
+    
+    if (this.onSettingsChange) {
+      this.onSettingsChange(key, newValue, oldValue);
+    }
+  }
+
+  setSoundEnabled(enabled) {
+    this.soundEnabled = enabled;
+  }
+
+  setSpeedMultiplier(multiplier) {
+    this.speedMultiplier = multiplier;
+    if (this.player) {
+      this.player.setSettingsSpeedMultiplier(multiplier);
     }
   }
 }

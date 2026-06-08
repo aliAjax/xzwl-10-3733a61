@@ -4,6 +4,7 @@ export class InputManager {
     this.touchDirection = { x: 0, y: 0 };
     this.keyDownCallbacks = [];
     this.keyUpCallbacks = [];
+    this.touchControlsEl = null;
     this.init();
   }
 
@@ -104,5 +105,27 @@ export class InputManager {
 
   isKeyPressed(key) {
     return !!this.keys[key.toLowerCase()];
+  }
+
+  setTouchControlsElement(element) {
+    this.touchControlsEl = element;
+  }
+
+  setTouchMode(mode) {
+    if (!this.touchControlsEl) return;
+
+    this.touchControlsEl.classList.remove('visible-always', 'hidden-always');
+
+    switch (mode) {
+      case 'always':
+        this.touchControlsEl.classList.add('visible-always');
+        break;
+      case 'hide':
+        this.touchControlsEl.classList.add('hidden-always');
+        break;
+      case 'auto':
+      default:
+        break;
+    }
   }
 }

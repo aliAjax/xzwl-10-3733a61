@@ -5,6 +5,7 @@ import { StorageManager } from './storage.js';
 import { ScoreManager } from './score.js';
 import { LevelSystem } from './levels.js';
 import { PowerUpSystem } from './powerups.js';
+import { SettingsManager, DEFAULT_SETTINGS } from './settings.js';
 
 const UI = {
   canvas: document.getElementById('gameCanvas'),
@@ -23,17 +24,28 @@ const UI = {
   resumeBtn: document.getElementById('resumeBtn'),
   restartBtn: document.getElementById('restartBtn'),
   restartBtn2: document.getElementById('restartBtn2'),
-  restartFromPauseBtn: document.getElementById('restartFromPauseBtn')
+  restartFromPauseBtn: document.getElementById('restartFromPauseBtn'),
+  touchControls: document.getElementById('touchControls'),
+  settingsBtn: document.getElementById('settingsBtn'),
+  settingsOverlay: document.getElementById('settingsOverlay'),
+  settingsCloseBtn: document.getElementById('settingsCloseBtn'),
+  settingsResetBtn: document.getElementById('settingsResetBtn'),
+  soundToggle: document.getElementById('soundToggle'),
+  speedBtns: document.querySelectorAll('.speed-btn'),
+  touchModeBtns: document.querySelectorAll('.touch-mode-btn')
 };
 
 const storage = new StorageManager();
 const scoreManager = new ScoreManager(storage);
 const inputManager = new InputManager();
+const settingsManager = new SettingsManager(storage);
 const levelSystem = new LevelSystem(CONFIG.levels);
 const powerUpSystem = new PowerUpSystem(CONFIG.powerUps);
 const game = new Game(UI.canvas, CONFIG);
 
+inputManager.setTouchControlsElement(UI.touchControls);
 game.init(scoreManager, inputManager);
+game.registerSettingsManager(settingsManager);
 
 function updateScoreUI(score) {
   UI.scoreEl.textContent = score;
@@ -177,3 +189,88 @@ console.log('💡 扩展接口已就绪，可随时注册关卡、道具、敌�
 window.__game = game;
 window.__scoreManager = scoreManager;
 window.__inputManager = inputManager;
+window.__settingsManager = settingsManager;
+
+function initSettingsUI() {
+  const settings = settingsManager.getSettings();
+  
+  UI.soundToggle.checked = settings.soundEnabled;
+  
+  UI.speedBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.speed === settings.speedLevel);
+  });
+  
+  UI.touchModeBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === settings.touchMode);
+  });
+  
+  inputManager.setTouchMode(settings.touchMode);
+}
+
+function openSettings() {
+  UI.settingsOverlay.classList.remove('hidden');
+  if (game.getState() === GAME_STATES.PLAYING) {
+    game.pause();
+  }
+}
+
+function closeSettings() {
+  UI.settingsOverlay.classList.add('hidden');
+}
+
+function handleSoundToggle() {
+  settingsManager.setSoundEnabled(UI.soundToggle.checked);
+}
+
+function handleSpeedChange(e) {
+  const speed = e.target.dataset.speed;
+  if (!speed) return;
+  
+  UI.speedBtns.forEach(btn => btn.classList.remove('active'));
+  e.target.classList.add('active');
+  settingsManager.setSpeedLevel(speed);
+}
+
+function handleTouchModeChange(e) {
+  const mode = e.target.dataset.mode;
+  if (!mode) return;
+  
+  UI.touchModeBtns.forEach(btn => btn.classList.remove('active'));
+  e.target.classList.add('active');
+  settingsManager.setTouchMode(mode);
+}
+
+function handleSettingsReset() {
+  settingsManager.reset();
+  initSettingsUI();
+}
+
+function handleSettingsChange(key, newValue, oldValue) {
+  switch (key) {
+    case 'touchMode':
+      inputManager.setTouchMode(newValue);
+      break;
+  }
+}
+
+initSettingsUI();
+settingsManager.onChange(handleSettingsChange);
+
+UI.settingsBtn.addEventListener('click', openSettings);
+UI.settingsCloseBtn.addEventListener('click', closeSettings);
+UI.soundToggle.addEventListener('change', handleSoundToggle);
+UI.speedBtns.forEach(btn => btn.addEventListener('click', handleSpeedChange));
+UI.touchModeBtns.forEach(btn => btn.addEventListener('click', handleTouchModeChange));
+UI.settingsResetBtn.addEventListener('click', handleSettingsReset);
+
+UI.settingsOverlay.addEventListener('click', (e) => {
+  if (e.target === UI.settingsOverlay) {
+    closeSettings();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !UI.settingsOverlay.classList.contains('hidden')) {
+    closeSettings();
+  }
+});

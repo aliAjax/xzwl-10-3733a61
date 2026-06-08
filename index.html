@@ -69,6 +69,7 @@
     <div class="controls">
       <button class="btn btn-control" id="pauseBtn" disabled>暂停</button>
       <button class="btn btn-control" id="restartBtn2" disabled>重新开始</button>
+      <button class="btn btn-control" id="settingsBtn">⚙️ 设置</button>
     </div>
 
     <div class="touch-controls" id="touchControls">
@@ -79,6 +80,54 @@
         <button class="touch-btn" data-direction="left">◀</button>
         <button class="touch-btn" data-direction="down">▼</button>
         <button class="touch-btn" data-direction="right">▶</button>
+      </div>
+    </div>
+
+    <div class="settings-overlay hidden" id="settingsOverlay">
+      <div class="settings-panel">
+        <div class="settings-header">
+          <h2 class="settings-title">⚙️ 游戏设置</h2>
+          <button class="settings-close" id="settingsCloseBtn">✕</button>
+        </div>
+        <div class="settings-content">
+          <div class="setting-item">
+            <div class="setting-label">
+              <span class="setting-icon">🔊</span>
+              <span>音效开关</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="soundToggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-label">
+              <span class="setting-icon">🚀</span>
+              <span>移动速度</span>
+            </div>
+            <div class="speed-selector">
+              <button class="speed-btn" data-speed="slow">慢</button>
+              <button class="speed-btn active" data-speed="normal">中</button>
+              <button class="speed-btn" data-speed="fast">快</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-label">
+              <span class="setting-icon">🎮</span>
+              <span>触屏按键</span>
+            </div>
+            <div class="touch-mode-selector">
+              <button class="touch-mode-btn active" data-mode="auto">自动</button>
+              <button class="touch-mode-btn" data-mode="always">始终显示</button>
+              <button class="touch-mode-btn" data-mode="hide">隐藏</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-footer">
+          <button class="btn btn-secondary" id="settingsResetBtn">恢复默认</button>
+        </div>
       </div>
     </div>
   </div>
