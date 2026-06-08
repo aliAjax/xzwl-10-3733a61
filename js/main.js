@@ -110,7 +110,7 @@ function handleStateChange(state) {
       UI.pauseBtn.textContent = '暂停';
       break;
   }
-  
+
   previousState = state;
 }
 

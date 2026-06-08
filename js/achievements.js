@@ -93,7 +93,7 @@ export class AchievementSystem {
 
   check(game) {
     if (!game) return;
-    
+
     const state = game.getState();
     if (state !== GAME_STATES.PLAYING && state !== GAME_STATES.GAME_OVER) return;
 

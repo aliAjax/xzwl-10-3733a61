@@ -129,6 +129,7 @@ export class Game {
     }
     
     this.state = GAME_STATES.IDLE;
+    if (this.onStateChange) this.onStateChange(this.state);
     this.reset();
     this.start();
   }
