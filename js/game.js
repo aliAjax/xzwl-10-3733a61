@@ -559,15 +559,6 @@ export class Game {
         this.player.heal(result.value);
         if (this.onLivesChange) this.onLivesChange(this.player.getLives());
         if (this.audioSystem && this.soundEnabled) this.audioSystem.play('heal');
-        
-        if (!this.isTrainingMode && !this.isReplayMode) {
-          if (this.dailyChallengeSystem) {
-            this.dailyChallengeSystem.notify('heal_used', result.value);
-          }
-          if (this.customChallengeSystem) {
-            this.customChallengeSystem.notify('heal_used', result.value);
-          }
-        }
         break;
     }
   }

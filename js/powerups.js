@@ -153,8 +153,13 @@ export class PowerUpSystem {
     if (this.game.onLivesChange) {
       this.game.onLivesChange(player.getLives());
     }
-    if (this.game.dailyChallengeSystem && !this.game.isTrainingMode && !this.game.isReplayMode) {
-      this.game.dailyChallengeSystem.notify('heal_used', config.healAmount);
+    if (!this.game.isTrainingMode && !this.game.isReplayMode) {
+      if (this.game.dailyChallengeSystem) {
+        this.game.dailyChallengeSystem.notify('heal_used', config.healAmount);
+      }
+      if (this.game.customChallengeSystem) {
+        this.game.customChallengeSystem.notify('heal_used', config.healAmount);
+      }
     }
   }
 
