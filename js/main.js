@@ -580,7 +580,7 @@ let lastChallengeCheck = 0;
 function idleLoop() {
   const now = Date.now();
   
-  if (game.getState() === GAME_STATES.IDLE || game.getState() === GAME_STATES.GAME_OVER) {
+  if (!game.isReplayMode && (game.getState() === GAME_STATES.IDLE || game.getState() === GAME_STATES.GAME_OVER)) {
     game.renderIdle();
   }
   

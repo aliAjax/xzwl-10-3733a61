@@ -286,6 +286,7 @@ export class ReplayPlayer {
 
     this.processInputFrames();
     this.processEntityEvents();
+    this.processCollisionEvents();
     
     this.player.move(this.currentInput.dx, this.currentInput.dy, deltaTime);
     this.player.update(deltaTime);
@@ -311,8 +312,6 @@ export class ReplayPlayer {
       }
       return true;
     });
-
-    this.checkCollisions();
   }
 
   processInputFrames() {
@@ -336,6 +335,17 @@ export class ReplayPlayer {
         this.spawnEntity(event.entityType, event.data);
       }
       this.entityEventIndex++;
+    }
+  }
+
+  processCollisionEvents() {
+    while (
+      this.collisionEventIndex < this.recording.collisionEvents.length &&
+      this.recording.collisionEvents[this.collisionEventIndex].t <= this.currentTime
+    ) {
+      const event = this.recording.collisionEvents[this.collisionEventIndex];
+      this.handleReplayCollision(event.type, event.data);
+      this.collisionEventIndex++;
     }
   }
 
@@ -385,16 +395,32 @@ export class ReplayPlayer {
     }
   }
 
-  handleReplayCollision(result, entity) {
-    switch (result.type) {
+  handleReplayCollision(typeOrResult, dataOrEntity) {
+    let type, data, entity;
+    
+    if (typeof typeOrResult === 'string') {
+      type = typeOrResult;
+      data = dataOrEntity;
+      entity = null;
+    } else {
+      type = typeOrResult.type;
+      data = typeOrResult;
+      entity = dataOrEntity;
+    }
+    
+    const x = entity ? entity.x : (data ? data.x : 0);
+    const y = entity ? entity.y : (data ? data.y : 0);
+    const value = data ? data.value : 0;
+    
+    switch (type) {
       case 'score':
         const effectConfig = this.game.skinManager 
           ? this.game.skinManager.getPickupEffectConfig() 
           : null;
         if (effectConfig) {
           this.pickupEffects.push({
-            x: entity.x,
-            y: entity.y,
+            x: x,
+            y: y,
             update: function(dt) {
               this.lifetime -= dt;
             },
@@ -416,14 +442,25 @@ export class ReplayPlayer {
         }
         break;
       case 'damage':
-        this.player.takeDamage(result.value);
+        this.player.takeDamage(value);
         break;
       case 'powerup':
-        this.applyPowerUp(result.powerUpType, result.config);
+        this.applyPowerUp(data.powerUpType, data.config);
         break;
       case 'heal':
-        this.player.heal(result.value);
+        this.player.heal(value);
         break;
+    }
+    
+    if (entity) {
+      entity.active = false;
+    } else {
+      const targetEntity = this.entities.find(e => 
+        e.x === x && e.y === y && e.active
+      );
+      if (targetEntity) {
+        targetEntity.active = false;
+      }
     }
   }
 

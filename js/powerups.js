@@ -80,6 +80,17 @@ export class PowerUpSystem {
       if (CollisionDetector.checkCircle(playerBounds, entityBounds)) {
         const result = entity.onCollide(player);
         if (result) {
+          if (this.game && this.game.state === 'playing' && this.game.replayManager) {
+            this.game.replayManager.recordCollision('powerup', {
+              entityType: 'powerup',
+              x: entity.x,
+              y: entity.y,
+              powerUpType: result.powerUpType,
+              config: result.config,
+              value: result.value || 0
+            });
+          }
+          
           this.applyPowerUp(result.powerUpType, result.config, player);
           this.addPickupEffect(entity.x, entity.y, result.config);
           if (this.game && this.game.statsSystem && !this.game.isTrainingMode && !this.game.isReplayMode) {

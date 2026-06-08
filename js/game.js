@@ -245,6 +245,10 @@ export class Game {
   }
 
   gameOver() {
+    if (this.isReplayMode) {
+      return;
+    }
+    
     if (this.isTrainingMode) {
       this.exitTraining();
       return;
