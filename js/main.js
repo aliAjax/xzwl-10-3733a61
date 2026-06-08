@@ -154,7 +154,7 @@ function updateChallengeResult() {
   const result = dailyChallengeSystem.getSessionResult();
   if (!result) return;
 
-  const { challenge, completed, failed, progress, alreadyCompletedToday, failedReason } = result;
+  const { challenge, completed, failed, progress, alreadyCompletedToday, completedThisSession, failedReason } = result;
 
   UI.challengeResultIcon.textContent = challenge.icon;
   UI.challengeResultName.textContent = challenge.title;
@@ -163,15 +163,18 @@ function updateChallengeResult() {
   UI.challengeResultStatus.classList.remove('success', 'failed', 'already');
   UI.challengeResultProgressFill.classList.remove('success', 'failed');
 
-  if (alreadyCompletedToday && !completed) {
-    UI.challengeResultStatus.textContent = '今日挑战已完成 ✓';
-    UI.challengeResultStatus.classList.add('already');
-  } else if (completed) {
+  if (completedThisSession) {
     UI.challengeResultStatus.textContent = '🎉 挑战完成！';
     UI.challengeResultStatus.classList.add('success');
+  } else if (alreadyCompletedToday && !completed) {
+    UI.challengeResultStatus.textContent = '今日挑战已完成 ✓';
+    UI.challengeResultStatus.classList.add('already');
   } else if (failed) {
     UI.challengeResultStatus.textContent = failedReason || '挑战未完成';
     UI.challengeResultStatus.classList.add('failed');
+  } else if (completed) {
+    UI.challengeResultStatus.textContent = '🎉 挑战完成！';
+    UI.challengeResultStatus.classList.add('success');
   } else {
     UI.challengeResultStatus.textContent = '挑战未完成';
     UI.challengeResultStatus.classList.add('failed');
@@ -181,7 +184,7 @@ function updateChallengeResult() {
   UI.challengeResultProgressFill.style.width = `${progressPercent}%`;
   UI.challengeResultProgressText.textContent = `${progressPercent}%`;
 
-  if (completed) {
+  if (completedThisSession || completed) {
     UI.challengeResultProgressFill.classList.add('success');
   } else if (failed) {
     UI.challengeResultProgressFill.classList.add('failed');

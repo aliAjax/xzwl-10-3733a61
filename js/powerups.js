@@ -126,6 +126,9 @@ export class PowerUpSystem {
     if (this.game.onLivesChange) {
       this.game.onLivesChange(player.getLives());
     }
+    if (this.game.dailyChallengeSystem) {
+      this.game.dailyChallengeSystem.notify('heal_used', config.healAmount);
+    }
   }
 
   removeEffect(effect) {

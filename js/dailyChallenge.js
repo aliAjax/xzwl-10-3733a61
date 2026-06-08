@@ -167,6 +167,7 @@ export class DailyChallengeSystem {
       startTime: Date.now(),
       survivedToLevel: 1,
       completed: false,
+      completedAt: null,
       failed: false
     };
   }
@@ -235,6 +236,7 @@ export class DailyChallengeSystem {
 
     if (completed) {
       this.sessionProgress.completed = true;
+      this.sessionProgress.completedAt = Date.now();
       this.completeChallenge();
       return true;
     }
@@ -307,12 +309,16 @@ export class DailyChallengeSystem {
         break;
     }
 
+    const completedThisSession = progress.completed && progress.completedAt && 
+      progress.completedAt >= progress.startTime;
+
     return {
       challenge: { ...this.currentChallenge },
       completed: progress.completed,
       failed: progress.failed,
       progress: currentProgress,
       alreadyCompletedToday: this.isTodayCompleted(),
+      completedThisSession: completedThisSession,
       failedReason
     };
   }
