@@ -149,6 +149,7 @@ let activeChallengeMode = CHALLENGE_MODES.DAILY;
 
 inputManager.setTouchControlsElement(UI.touchControls);
 game.init(scoreManager, inputManager);
+game.setActiveChallengeMode(activeChallengeMode);
 game.registerSettingsManager(settingsManager);
 game.registerSkinManager(skinManager);
 
@@ -350,6 +351,7 @@ let previousState = GAME_STATES.IDLE;
 
 function handleChallengeModeChange(mode) {
   activeChallengeMode = mode;
+  game.setActiveChallengeMode(mode);
   
   UI.challengeModeTabs.forEach(tab => {
     tab.classList.toggle('active', tab.dataset.mode === mode);
@@ -728,8 +730,7 @@ function idleLoop() {
   }
   
   if (game.getState() === GAME_STATES.PLAYING && now - lastChallengeCheck > 500) {
-    dailyChallengeSystem.checkCompletion();
-    customChallengeSystem.checkCompletion();
+    getActiveChallengeSystem().checkCompletion();
     updateChallengeProgress();
     lastChallengeCheck = now;
   }
