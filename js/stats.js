@@ -53,8 +53,22 @@ export class StatsSystem {
       powerUps: 0,
       maxLevel: 1,
       startTime: Date.now(),
+      pauseStartTime: null,
+      totalPauseTime: 0,
       survivalTime: 0
     };
+  }
+
+  pauseSession() {
+    if (!this.sessionStats || this.sessionStats.pauseStartTime !== null) return;
+    this.sessionStats.pauseStartTime = Date.now();
+  }
+
+  resumeSession() {
+    if (!this.sessionStats || this.sessionStats.pauseStartTime === null) return;
+    const pauseDuration = Date.now() - this.sessionStats.pauseStartTime;
+    this.sessionStats.totalPauseTime += pauseDuration;
+    this.sessionStats.pauseStartTime = null;
   }
 
   updateSessionLevel(level) {
@@ -82,7 +96,8 @@ export class StatsSystem {
   endSession() {
     if (!this.sessionStats) return;
 
-    this.sessionStats.survivalTime = Date.now() - this.sessionStats.startTime;
+    const totalTime = Date.now() - this.sessionStats.startTime;
+    this.sessionStats.survivalTime = totalTime - this.sessionStats.totalPauseTime;
 
     this.stats.totalGames += 1;
     this.stats.totalStars += this.sessionStats.stars;

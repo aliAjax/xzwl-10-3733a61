@@ -109,6 +109,9 @@ export class Game {
     if (this.state !== GAME_STATES.PLAYING) return;
     
     this.state = GAME_STATES.PAUSED;
+    if (this.statsSystem) {
+      this.statsSystem.pauseSession();
+    }
     if (this.onStateChange) this.onStateChange(this.state);
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
@@ -121,6 +124,9 @@ export class Game {
     if (this.state !== GAME_STATES.PAUSED) return;
     
     this.state = GAME_STATES.PLAYING;
+    if (this.statsSystem) {
+      this.statsSystem.resumeSession();
+    }
     this.lastTime = performance.now();
     if (this.onStateChange) this.onStateChange(this.state);
     if (this.audioSystem && this.soundEnabled) this.audioSystem.play('resume');
