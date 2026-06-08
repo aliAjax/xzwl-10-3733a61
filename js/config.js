@@ -88,7 +88,77 @@ export const GAME_STATES = {
   IDLE: 'idle',
   PLAYING: 'playing',
   PAUSED: 'paused',
-  GAME_OVER: 'gameover'
+  GAME_OVER: 'gameover',
+  TRAINING: 'training'
+};
+
+export const TRAINING_PRESETS = {
+  easy: {
+    name: '新手练习',
+    description: '慢速生成，适合熟悉操作',
+    starInterval: 2500,
+    maxStars: 3,
+    obstacleInterval: 4000,
+    maxObstacles: 2,
+    obstacleSpeed: 1,
+    powerUpInterval: 4000,
+    maxPowerUps: 2
+  },
+  normal: {
+    name: '进阶训练',
+    description: '中等难度，接近正式游戏',
+    starInterval: 1500,
+    maxStars: 5,
+    obstacleInterval: 2000,
+    maxObstacles: 3,
+    obstacleSpeed: 2,
+    powerUpInterval: 5000,
+    maxPowerUps: 2
+  },
+  intense: {
+    name: '高强度',
+    description: '密集生成，锻炼反应能力',
+    starInterval: 800,
+    maxStars: 8,
+    obstacleInterval: 1000,
+    maxObstacles: 6,
+    obstacleSpeed: 3.5,
+    powerUpInterval: 3500,
+    maxPowerUps: 3
+  },
+  obstacle_only: {
+    name: '闪避大师',
+    description: '只有陨石，练习躲避技巧',
+    starInterval: 3000,
+    maxStars: 2,
+    obstacleInterval: 800,
+    maxObstacles: 10,
+    obstacleSpeed: 4,
+    powerUpInterval: 3000,
+    maxPowerUps: 2
+  },
+  star_only: {
+    name: '收集达人',
+    description: '星星很多，练习快速收集',
+    starInterval: 500,
+    maxStars: 15,
+    obstacleInterval: 5000,
+    maxObstacles: 1,
+    obstacleSpeed: 1.5,
+    powerUpInterval: 4000,
+    maxPowerUps: 2
+  },
+  powerup_fun: {
+    name: '道具狂欢',
+    description: '大量道具，体验各种效果',
+    starInterval: 1500,
+    maxStars: 5,
+    obstacleInterval: 3000,
+    maxObstacles: 3,
+    obstacleSpeed: 2,
+    powerUpInterval: 1500,
+    maxPowerUps: 5
+  }
 };
 
 export const SKINS = [

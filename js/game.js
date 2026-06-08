@@ -1,4 +1,4 @@
-import { CONFIG, GAME_STATES } from './config.js';
+import { CONFIG, GAME_STATES, TRAINING_PRESETS } from './config.js';
 import { Player } from './player.js';
 import { Star, Obstacle } from './entities.js';
 import { CollisionDetector } from './collision.js';
@@ -47,6 +47,15 @@ export class Game {
     
     this.pickupEffects = [];
     this.skinManager = null;
+    
+    this.isTrainingMode = false;
+    this.trainingConfig = null;
+    this.trainingStats = {
+      starsCollected: 0,
+      obstaclesAvoided: 0,
+      powerupsUsed: 0,
+      startTime: 0
+    };
     
     this.initBackgroundStars();
   }
@@ -109,11 +118,71 @@ export class Game {
     this.gameLoop();
   }
 
+  startTraining(presetKey = 'normal') {
+    if (this.state !== GAME_STATES.IDLE && this.state !== GAME_STATES.GAME_OVER) return;
+    
+    const preset = TRAINING_PRESETS[presetKey] || TRAINING_PRESETS.normal;
+    this.trainingConfig = { ...preset };
+    this.isTrainingMode = true;
+    this.trainingStats = {
+      starsCollected: 0,
+      obstaclesAvoided: 0,
+      powerupsUsed: 0,
+      startTime: Date.now()
+    };
+    
+    this.reset();
+    this.state = GAME_STATES.TRAINING;
+    this.lastTime = performance.now();
+    
+    if (this.powerUpSystem) {
+      this.powerUpSystem.config.spawnInterval = this.trainingConfig.powerUpInterval;
+      this.powerUpSystem.config.maxCount = this.trainingConfig.maxPowerUps;
+    }
+    
+    if (this.onStateChange) this.onStateChange(this.state);
+    if (this.audioSystem && this.soundEnabled) this.audioSystem.play('start');
+    
+    this.gameLoop();
+  }
+
+  changeTrainingPreset(presetKey) {
+    if (!this.isTrainingMode) return;
+    
+    const preset = TRAINING_PRESETS[presetKey];
+    if (!preset) return;
+    
+    this.trainingConfig = { ...preset };
+    
+    if (this.powerUpSystem) {
+      this.powerUpSystem.config.spawnInterval = this.trainingConfig.powerUpInterval;
+      this.powerUpSystem.config.maxCount = this.trainingConfig.maxPowerUps;
+    }
+  }
+
+  exitTraining() {
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+    
+    this.isTrainingMode = false;
+    this.trainingConfig = null;
+    
+    if (this.powerUpSystem) {
+      this.powerUpSystem.config.spawnInterval = CONFIG.powerUps.spawnInterval;
+      this.powerUpSystem.config.maxCount = CONFIG.powerUps.maxCount;
+    }
+    
+    this.state = GAME_STATES.IDLE;
+    if (this.onStateChange) this.onStateChange(this.state);
+  }
+
   pause() {
-    if (this.state !== GAME_STATES.PLAYING) return;
+    if (this.state !== GAME_STATES.PLAYING && this.state !== GAME_STATES.TRAINING) return;
     
     this.state = GAME_STATES.PAUSED;
-    if (this.statsSystem) {
+    if (this.statsSystem && !this.isTrainingMode) {
       this.statsSystem.pauseSession();
     }
     if (this.onStateChange) this.onStateChange(this.state);
@@ -127,8 +196,8 @@ export class Game {
   resume() {
     if (this.state !== GAME_STATES.PAUSED) return;
     
-    this.state = GAME_STATES.PLAYING;
-    if (this.statsSystem) {
+    this.state = this.isTrainingMode ? GAME_STATES.TRAINING : GAME_STATES.PLAYING;
+    if (this.statsSystem && !this.isTrainingMode) {
       this.statsSystem.resumeSession();
     }
     this.lastTime = performance.now();
@@ -170,6 +239,11 @@ export class Game {
   }
 
   gameOver() {
+    if (this.isTrainingMode) {
+      this.exitTraining();
+      return;
+    }
+    
     this.state = GAME_STATES.GAME_OVER;
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
@@ -193,7 +267,7 @@ export class Game {
   }
 
   gameLoop(currentTime = performance.now()) {
-    if (this.state !== GAME_STATES.PLAYING) return;
+    if (this.state !== GAME_STATES.PLAYING && this.state !== GAME_STATES.TRAINING) return;
     
     const deltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
@@ -228,41 +302,59 @@ export class Game {
     
     this.checkCollisions();
     
-    if (this.levelSystem) this.levelSystem.update(deltaTime);
     if (this.powerUpSystem) this.powerUpSystem.update(deltaTime);
     if (this.enemySystem) this.enemySystem.update(deltaTime);
-    if (this.achievementSystem) this.achievementSystem.check(this);
     
-    if (this.skinManager) {
-      const gameState = {
-        currentScore: this.getScore()
-      };
-      const newlyUnlocked = this.skinManager.checkUnlocks(
-        gameState,
-        this.achievementSystem,
-        this.scoreManager
-      );
+    if (!this.isTrainingMode) {
+      if (this.levelSystem) this.levelSystem.update(deltaTime);
+      if (this.achievementSystem) this.achievementSystem.check(this);
       
-      newlyUnlocked.forEach(skin => {
-        if (this.onSkinUnlock) {
-          this.onSkinUnlock(skin);
-        }
-      });
+      if (this.skinManager) {
+        const gameState = {
+          currentScore: this.getScore()
+        };
+        const newlyUnlocked = this.skinManager.checkUnlocks(
+          gameState,
+          this.achievementSystem,
+          this.scoreManager
+        );
+        
+        newlyUnlocked.forEach(skin => {
+          if (this.onSkinUnlock) {
+            this.onSkinUnlock(skin);
+          }
+        });
+      }
     }
   }
 
   spawnEntities(deltaTime) {
-    this.starSpawnTimer += deltaTime;
-    const starInterval = this.levelSystem 
-      ? this.levelSystem.getSpawnInterval('star') 
-      : this.config.star.spawnInterval;
+    let starInterval, maxStars, obstacleInterval, maxObstacles;
     
+    if (this.isTrainingMode && this.trainingConfig) {
+      starInterval = this.trainingConfig.starInterval;
+      maxStars = this.trainingConfig.maxStars;
+      obstacleInterval = this.trainingConfig.obstacleInterval;
+      maxObstacles = this.trainingConfig.maxObstacles;
+    } else {
+      starInterval = this.levelSystem 
+        ? this.levelSystem.getSpawnInterval('star') 
+        : this.config.star.spawnInterval;
+      maxStars = this.levelSystem 
+        ? this.levelSystem.getMaxCount('star') 
+        : this.config.star.maxCount;
+      obstacleInterval = this.levelSystem 
+        ? this.levelSystem.getSpawnInterval('obstacle') 
+        : this.config.obstacle.spawnInterval;
+      maxObstacles = this.levelSystem 
+        ? this.levelSystem.getMaxCount('obstacle') 
+        : this.config.obstacle.maxCount;
+    }
+    
+    this.starSpawnTimer += deltaTime;
     if (this.starSpawnTimer >= starInterval) {
       this.starSpawnTimer = 0;
       const starCount = this.entities.filter(e => e.type === 'star').length;
-      const maxStars = this.levelSystem 
-        ? this.levelSystem.getMaxCount('star') 
-        : this.config.star.maxCount;
       
       if (starCount < maxStars) {
         this.spawnStar();
@@ -270,16 +362,9 @@ export class Game {
     }
     
     this.obstacleSpawnTimer += deltaTime;
-    const obstacleInterval = this.levelSystem 
-      ? this.levelSystem.getSpawnInterval('obstacle') 
-      : this.config.obstacle.spawnInterval;
-    
     if (this.obstacleSpawnTimer >= obstacleInterval) {
       this.obstacleSpawnTimer = 0;
       const obstacleCount = this.entities.filter(e => e.type === 'obstacle').length;
-      const maxObstacles = this.levelSystem 
-        ? this.levelSystem.getMaxCount('obstacle') 
-        : this.config.obstacle.maxCount;
       
       if (obstacleCount < maxObstacles) {
         this.spawnObstacle();
@@ -315,7 +400,9 @@ export class Game {
     const y = padding + Math.random() * (this.height - padding * 2);
     
     const obstacleConfig = { ...this.config.obstacle };
-    if (this.levelSystem) {
+    if (this.isTrainingMode && this.trainingConfig) {
+      obstacleConfig.speed = this.trainingConfig.obstacleSpeed;
+    } else if (this.levelSystem) {
       obstacleConfig.speed = this.levelSystem.getObstacleSpeed();
     }
     
@@ -371,15 +458,20 @@ export class Game {
         }
         
         if (this.audioSystem && this.soundEnabled) this.audioSystem.play('collect');
-        if (this.achievementSystem) {
-          this.achievementSystem.notify('star_collected', result.value);
-        }
-        if (this.dailyChallengeSystem) {
-          this.dailyChallengeSystem.notify('star_collected', result.value / this.config.star.points);
-          this.dailyChallengeSystem.notify('score', this.getScore());
-        }
-        if (this.statsSystem) {
-          this.statsSystem.notify('star_collected', result.value / this.config.star.points);
+        
+        if (this.isTrainingMode) {
+          this.trainingStats.starsCollected += 1;
+        } else {
+          if (this.achievementSystem) {
+            this.achievementSystem.notify('star_collected', result.value);
+          }
+          if (this.dailyChallengeSystem) {
+            this.dailyChallengeSystem.notify('star_collected', result.value / this.config.star.points);
+            this.dailyChallengeSystem.notify('score', this.getScore());
+          }
+          if (this.statsSystem) {
+            this.statsSystem.notify('star_collected', result.value / this.config.star.points);
+          }
         }
         break;
         
@@ -387,14 +479,17 @@ export class Game {
         if (this.player.takeDamage(result.value)) {
           if (this.onLivesChange) this.onLivesChange(this.player.getLives());
           if (this.audioSystem && this.soundEnabled) this.audioSystem.play('hit');
-          if (this.achievementSystem) {
-            this.achievementSystem.notify('damage_taken', result.value);
-          }
-          if (this.dailyChallengeSystem) {
-            this.dailyChallengeSystem.notify('damage_taken', result.value);
-          }
-          if (this.statsSystem) {
-            this.statsSystem.notify('collision', result.value);
+          
+          if (!this.isTrainingMode) {
+            if (this.achievementSystem) {
+              this.achievementSystem.notify('damage_taken', result.value);
+            }
+            if (this.dailyChallengeSystem) {
+              this.dailyChallengeSystem.notify('damage_taken', result.value);
+            }
+            if (this.statsSystem) {
+              this.statsSystem.notify('collision', result.value);
+            }
           }
           
           if (this.player.getLives() <= 0) {
@@ -407,7 +502,8 @@ export class Game {
         this.player.heal(result.value);
         if (this.onLivesChange) this.onLivesChange(this.player.getLives());
         if (this.audioSystem && this.soundEnabled) this.audioSystem.play('heal');
-        if (this.dailyChallengeSystem) {
+        
+        if (!this.isTrainingMode && this.dailyChallengeSystem) {
           this.dailyChallengeSystem.notify('heal_used', result.value);
         }
         break;
@@ -478,6 +574,22 @@ export class Game {
 
   getState() {
     return this.state;
+  }
+
+  isTraining() {
+    return this.isTrainingMode;
+  }
+
+  getTrainingStats() {
+    const duration = Date.now() - this.trainingStats.startTime;
+    return {
+      ...this.trainingStats,
+      duration: duration
+    };
+  }
+
+  getTrainingConfig() {
+    return this.trainingConfig;
   }
 
   getScore() {

@@ -72,8 +72,11 @@ export class PowerUpSystem {
         if (result) {
           this.applyPowerUp(result.powerUpType, result.config, player);
           this.addPickupEffect(entity.x, entity.y, result.config);
-          if (this.game && this.game.statsSystem) {
+          if (this.game && this.game.statsSystem && !this.game.isTrainingMode) {
             this.game.statsSystem.notify('powerup_picked', 1);
+          }
+          if (this.game && this.game.isTrainingMode) {
+            this.game.trainingStats.powerupsUsed += 1;
           }
         }
       }

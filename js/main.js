@@ -1,4 +1,4 @@
-import { CONFIG, GAME_STATES } from './config.js';
+import { CONFIG, GAME_STATES, TRAINING_PRESETS } from './config.js';
 import { Game } from './game.js';
 import { InputManager } from './input.js';
 import { StorageManager } from './storage.js';
@@ -71,7 +71,16 @@ const UI = {
   skinsContent: document.getElementById('skinsContent'),
   skinsProgress: document.getElementById('skinsProgress'),
   skinsPreview: document.getElementById('skinsPreview'),
-  skinTabs: document.querySelectorAll('.skin-tab')
+  skinTabs: document.querySelectorAll('.skin-tab'),
+  trainingBtn: document.getElementById('trainingBtn'),
+  trainingOverlay: document.getElementById('trainingOverlay'),
+  trainingBackBtn: document.getElementById('trainingBackBtn'),
+  presetItems: document.querySelectorAll('.preset-item'),
+  trainingControls: document.getElementById('trainingControls'),
+  trainingStars: document.getElementById('trainingStars'),
+  trainingTime: document.getElementById('trainingTime'),
+  presetSelect: document.getElementById('presetSelect'),
+  exitTrainingBtn: document.getElementById('exitTrainingBtn')
 };
 
 const storage = new StorageManager();
@@ -116,6 +125,7 @@ function hideAllOverlays() {
   UI.startOverlay.classList.add('hidden');
   UI.pauseOverlay.classList.add('hidden');
   UI.gameOverOverlay.classList.add('hidden');
+  UI.trainingOverlay.classList.add('hidden');
 }
 
 function updateDailyChallengeCard() {
@@ -213,6 +223,10 @@ let previousState = GAME_STATES.IDLE;
 function handleStateChange(state) {
   hideAllOverlays();
   
+  if (state === GAME_STATES.TRAINING || previousState === GAME_STATES.TRAINING) {
+    UI.trainingControls.classList.toggle('hidden', state !== GAME_STATES.TRAINING && state !== GAME_STATES.PAUSED);
+  }
+  
   switch (state) {
     case GAME_STATES.IDLE:
       UI.startOverlay.classList.remove('hidden');
@@ -231,6 +245,13 @@ function handleStateChange(state) {
         dailyChallengeSystem.resetSessionProgress();
       }
       showChallengeProgress();
+      break;
+      
+    case GAME_STATES.TRAINING:
+      UI.pauseBtn.disabled = false;
+      UI.restartBtn2.disabled = true;
+      UI.pauseBtn.textContent = '暂停';
+      hideChallengeProgress();
       break;
       
     case GAME_STATES.PAUSED:
@@ -304,6 +325,58 @@ function showChallengeCompletionToast(challenge) {
   }, 4000);
 }
 
+function openTraining() {
+  hideAllOverlays();
+  UI.trainingOverlay.classList.remove('hidden');
+}
+
+function closeTraining() {
+  UI.trainingOverlay.classList.add('hidden');
+  UI.startOverlay.classList.remove('hidden');
+}
+
+function startTraining(presetKey) {
+  hideAllOverlays();
+  UI.presetSelect.value = presetKey;
+  game.startTraining(presetKey);
+}
+
+function updateTrainingStats() {
+  if (!game.isTraining()) return;
+  
+  const stats = game.getTrainingStats();
+  UI.trainingStars.textContent = stats.starsCollected;
+  
+  const totalSeconds = Math.floor(stats.duration / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  UI.trainingTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function handlePresetChange(e) {
+  const presetKey = e.target.value;
+  if (game.isTraining()) {
+    game.changeTrainingPreset(presetKey);
+  }
+}
+
+function exitTraining() {
+  game.exitTraining();
+}
+
+UI.trainingBtn.addEventListener('click', openTraining);
+UI.trainingBackBtn.addEventListener('click', closeTraining);
+
+UI.presetItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const presetKey = item.dataset.preset;
+    startTraining(presetKey);
+  });
+});
+
+UI.presetSelect.addEventListener('change', handlePresetChange);
+UI.exitTrainingBtn.addEventListener('click', exitTraining);
+
 UI.startBtn.addEventListener('click', () => {
   game.start();
 });
@@ -366,6 +439,11 @@ function idleLoop() {
   if (game.getState() === GAME_STATES.PLAYING && now - lastChallengeCheck > 500) {
     dailyChallengeSystem.checkCompletion();
     updateChallengeProgress();
+    lastChallengeCheck = now;
+  }
+  
+  if (game.isTraining() && now - lastChallengeCheck > 500) {
+    updateTrainingStats();
     lastChallengeCheck = now;
   }
   

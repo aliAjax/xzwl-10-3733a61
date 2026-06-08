@@ -74,7 +74,82 @@
           </div>
           
           <button class="btn btn-secondary" id="skinsBtnStart">🎨 皮肤收藏</button>
+          <button class="btn btn-accent" id="trainingBtn">🎯 训练场</button>
           <button class="btn btn-primary" id="startBtn">开始游戏</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="trainingOverlay">
+        <div class="overlay-content">
+          <h2 class="overlay-title">🎯 训练场</h2>
+          <p class="overlay-desc">选择训练难度，自由练习，不计入正式成绩</p>
+          
+          <div class="training-presets">
+            <div class="preset-item" data-preset="easy">
+              <div class="preset-icon">🌱</div>
+              <div class="preset-info">
+                <div class="preset-name">新手练习</div>
+                <div class="preset-desc">慢速生成，适合熟悉操作</div>
+              </div>
+            </div>
+            <div class="preset-item" data-preset="normal">
+              <div class="preset-icon">⚡</div>
+              <div class="preset-info">
+                <div class="preset-name">进阶训练</div>
+                <div class="preset-desc">中等难度，接近正式游戏</div>
+              </div>
+            </div>
+            <div class="preset-item" data-preset="intense">
+              <div class="preset-icon">🔥</div>
+              <div class="preset-info">
+                <div class="preset-name">高强度</div>
+                <div class="preset-desc">密集生成，锻炼反应能力</div>
+              </div>
+            </div>
+            <div class="preset-item" data-preset="obstacle_only">
+              <div class="preset-icon">💨</div>
+              <div class="preset-info">
+                <div class="preset-name">闪避大师</div>
+                <div class="preset-desc">只有陨石，练习躲避技巧</div>
+              </div>
+            </div>
+            <div class="preset-item" data-preset="star_only">
+              <div class="preset-icon">⭐</div>
+              <div class="preset-info">
+                <div class="preset-name">收集达人</div>
+                <div class="preset-desc">星星很多，练习快速收集</div>
+              </div>
+            </div>
+            <div class="preset-item" data-preset="powerup_fun">
+              <div class="preset-icon">🎁</div>
+              <div class="preset-info">
+                <div class="preset-name">道具狂欢</div>
+                <div class="preset-desc">大量道具，体验各种效果</div>
+              </div>
+            </div>
+          </div>
+          
+          <button class="btn btn-secondary" id="trainingBackBtn">← 返回</button>
+        </div>
+      </div>
+
+      <div class="training-controls hidden" id="trainingControls">
+        <div class="training-info">
+          <span class="training-badge">🎯 训练场模式</span>
+          <span class="training-stats" id="trainingStats">
+            ⭐ <span id="trainingStars">0</span> | ⏱️ <span id="trainingTime">00:00</span>
+          </span>
+        </div>
+        <div class="training-actions">
+          <select class="preset-select" id="presetSelect">
+            <option value="easy">🌱 新手练习</option>
+            <option value="normal">⚡ 进阶训练</option>
+            <option value="intense">🔥 高强度</option>
+            <option value="obstacle_only">💨 闪避大师</option>
+            <option value="star_only">⭐ 收集达人</option>
+            <option value="powerup_fun">🎁 道具狂欢</option>
+          </select>
+          <button class="btn btn-control btn-exit" id="exitTrainingBtn">退出训练</button>
         </div>
       </div>
 
