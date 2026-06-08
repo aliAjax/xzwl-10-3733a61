@@ -382,7 +382,7 @@ UI.startBtn.addEventListener('click', () => {
 });
 
 UI.pauseBtn.addEventListener('click', () => {
-  if (game.getState() === GAME_STATES.PLAYING) {
+  if (game.getState() === GAME_STATES.PLAYING || game.getState() === GAME_STATES.TRAINING) {
     game.pause();
   } else if (game.getState() === GAME_STATES.PAUSED) {
     game.resume();

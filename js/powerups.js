@@ -132,7 +132,7 @@ export class PowerUpSystem {
     if (this.game.onLivesChange) {
       this.game.onLivesChange(player.getLives());
     }
-    if (this.game.dailyChallengeSystem) {
+    if (this.game.dailyChallengeSystem && !this.game.isTrainingMode) {
       this.game.dailyChallengeSystem.notify('heal_used', config.healAmount);
     }
   }
