@@ -2,6 +2,7 @@ import { CONFIG, GAME_STATES } from './config.js';
 import { Player } from './player.js';
 import { Star, Obstacle } from './entities.js';
 import { CollisionDetector } from './collision.js';
+import { PickupEffect } from './skins.js';
 
 export class Game {
   constructor(canvas, config) {
@@ -43,6 +44,9 @@ export class Game {
     this.onLevelChange = null;
     this.onGameOver = null;
     this.onSettingsChange = null;
+    
+    this.pickupEffects = [];
+    this.skinManager = null;
     
     this.initBackgroundStars();
   }
@@ -148,6 +152,7 @@ export class Game {
 
   reset() {
     this.entities = [];
+    this.pickupEffects = [];
     this.starSpawnTimer = 0;
     this.obstacleSpawnTimer = 0;
     this.scoreManager.reset();
@@ -214,12 +219,36 @@ export class Game {
     
     this.entities = this.entities.filter(e => e.active);
     
+    this.pickupEffects.forEach(effect => {
+      if (effect.active) {
+        effect.update(deltaTime);
+      }
+    });
+    this.pickupEffects = this.pickupEffects.filter(e => e.active);
+    
     this.checkCollisions();
     
     if (this.levelSystem) this.levelSystem.update(deltaTime);
     if (this.powerUpSystem) this.powerUpSystem.update(deltaTime);
     if (this.enemySystem) this.enemySystem.update(deltaTime);
     if (this.achievementSystem) this.achievementSystem.check(this);
+    
+    if (this.skinManager) {
+      const gameState = {
+        currentScore: this.getScore()
+      };
+      const newlyUnlocked = this.skinManager.checkUnlocks(
+        gameState,
+        this.achievementSystem,
+        this.scoreManager
+      );
+      
+      newlyUnlocked.forEach(skin => {
+        if (this.onSkinUnlock) {
+          this.onSkinUnlock(skin);
+        }
+      });
+    }
   }
 
   spawnEntities(deltaTime) {
@@ -311,7 +340,7 @@ export class Game {
       if (CollisionDetector.checkCircle(playerBounds, entityBounds)) {
         const result = entity.onCollide(this.player);
         if (result) {
-          this.handleCollisionResult(result);
+          this.handleCollisionResult(result, entity);
         }
       }
     }
@@ -325,10 +354,22 @@ export class Game {
     }
   }
 
-  handleCollisionResult(result) {
+  handleCollisionResult(result, entity) {
     switch (result.type) {
       case 'score':
         this.scoreManager.addScore(result.value);
+        
+        if (entity) {
+          const effectConfig = this.skinManager 
+            ? this.skinManager.getPickupEffectConfig() 
+            : null;
+          
+          if (effectConfig) {
+            const effect = new PickupEffect(entity.x, entity.y, effectConfig);
+            this.pickupEffects.push(effect);
+          }
+        }
+        
         if (this.audioSystem && this.soundEnabled) this.audioSystem.play('collect');
         if (this.achievementSystem) {
           this.achievementSystem.notify('star_collected', result.value);
@@ -384,11 +425,18 @@ export class Game {
       }
     });
     
+    this.pickupEffects.forEach(effect => {
+      if (effect.active) {
+        effect.render(this.ctx);
+      }
+    });
+    
     if (this.powerUpSystem) {
       this.powerUpSystem.renderEffects(this.ctx);
     }
     
-    this.player.render(this.ctx);
+    const currentSkin = this.skinManager ? this.skinManager.getCurrentSkin() : null;
+    this.player.render(this.ctx, currentSkin);
   }
 
   renderBackground() {
@@ -556,6 +604,25 @@ export class Game {
     this.speedMultiplier = multiplier;
     if (this.player) {
       this.player.setSettingsSpeedMultiplier(multiplier);
+    }
+  }
+
+  registerSkinManager(system) {
+    this.skinManager = system;
+    if (system) {
+      if (this.player) {
+        system.applySkinToPlayer(this.player);
+      }
+      
+      system.onChange((type, newValue, oldValue) => {
+        if (type === 'select' && this.player) {
+          system.applySkinToPlayer(this.player);
+        }
+      });
+      
+      if (system.onRegister) {
+        system.onRegister(this);
+      }
     }
   }
 }

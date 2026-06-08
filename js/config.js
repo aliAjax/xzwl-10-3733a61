@@ -35,7 +35,8 @@ export const CONFIG = {
     achievementsKey: 'starCollector_achievements',
     settingsKey: 'starCollector_settings',
     dailyChallengesKey: 'starCollector_dailyChallenges',
-    statsKey: 'starCollector_stats'
+    statsKey: 'starCollector_stats',
+    skinsKey: 'starCollector_skins'
   },
   levels: [
     { threshold: 0, starInterval: 1500, maxStars: 5, maxObstacles: 3, obstacleSpeed: 2 },
@@ -89,3 +90,139 @@ export const GAME_STATES = {
   PAUSED: 'paused',
   GAME_OVER: 'gameover'
 };
+
+export const SKINS = [
+  {
+    id: 'classic',
+    name: '经典蓝',
+    description: '游戏初始皮肤，永恒的星际蓝',
+    icon: '🔵',
+    player: {
+      color: '#6366f1',
+      glowColor: 'rgba(99, 102, 241, 0.6)',
+      innerColor: '#c7d2fe',
+      outerColor: '#4338ca',
+      shape: 'circle'
+    },
+    trail: {
+      color: '#6366f1',
+      length: 8
+    },
+    pickupEffect: {
+      type: 'sparkle',
+      color: '#fbbf24',
+      particleCount: 8
+    },
+    unlock: {
+      type: 'default'
+    }
+  },
+  {
+    id: 'emerald',
+    name: '翡翠绿',
+    description: '如翡翠般清新自然的配色',
+    icon: '💚',
+    player: {
+      color: '#10b981',
+      glowColor: 'rgba(16, 185, 129, 0.6)',
+      innerColor: '#a7f3d0',
+      outerColor: '#047857',
+      shape: 'circle'
+    },
+    trail: {
+      color: '#10b981',
+      length: 10
+    },
+    pickupEffect: {
+      type: 'sparkle',
+      color: '#10b981',
+      particleCount: 10
+    },
+    unlock: {
+      type: 'default'
+    }
+  },
+  {
+    id: 'sunset',
+    name: '落日橙',
+    description: '温暖如落日余晖的橙红配色',
+    icon: '🧡',
+    player: {
+      color: '#f97316',
+      glowColor: 'rgba(249, 115, 22, 0.6)',
+      innerColor: '#fed7aa',
+      outerColor: '#c2410c',
+      shape: 'star'
+    },
+    trail: {
+      color: '#f97316',
+      length: 12
+    },
+    pickupEffect: {
+      type: 'explosion',
+      color: '#f97316',
+      particleCount: 12
+    },
+    unlock: {
+      type: 'score',
+      value: 300,
+      description: '单局达到300分解锁'
+    }
+  },
+  {
+    id: 'royal',
+    name: '皇家紫',
+    description: '高贵典雅的皇家紫色，需要成就解锁',
+    icon: '💜',
+    player: {
+      color: '#8b5cf6',
+      glowColor: 'rgba(139, 92, 246, 0.6)',
+      innerColor: '#ddd6fe',
+      outerColor: '#6d28d9',
+      shape: 'diamond'
+    },
+    trail: {
+      color: '#8b5cf6',
+      length: 15
+    },
+    pickupEffect: {
+      type: 'ring',
+      color: '#8b5cf6',
+      particleCount: 16
+    },
+    unlock: {
+      type: 'achievement',
+      value: 'score_100',
+      description: '解锁"百分达人"成就后获得'
+    }
+  },
+  {
+    id: 'rainbow',
+    name: '彩虹传说',
+    description: '传说中的彩虹皮肤，只有真正的高手才能解锁',
+    icon: '🌈',
+    player: {
+      color: '#ec4899',
+      glowColor: 'rgba(236, 72, 153, 0.6)',
+      innerColor: '#fbcfe8',
+      outerColor: '#be185d',
+      shape: 'rainbow',
+      rainbow: true
+    },
+    trail: {
+      color: '#ec4899',
+      length: 20,
+      rainbow: true
+    },
+    pickupEffect: {
+      type: 'rainbow',
+      color: '#ec4899',
+      particleCount: 20
+    },
+    unlock: {
+      type: 'highscore',
+      value: 500,
+      description: '最高分达到500解锁'
+    }
+  }
+];

@@ -1,4 +1,5 @@
 import { CollisionDetector } from './collision.js';
+import { SkinRenderer } from './skins.js';
 
 export class Player {
   constructor(x, y, config, bounds) {
@@ -48,58 +49,12 @@ export class Player {
     }
   }
 
-  render(ctx) {
-    for (let i = this.trail.length - 1; i >= 0; i--) {
-      const t = this.trail[i];
-      const alpha = (1 - i / this.trail.length) * 0.3;
-      const size = this.size * (1 - i / this.trail.length * 0.5);
-      
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = this.config.color;
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, size / 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    ctx.save();
-    ctx.translate(this.x, this.y);
-
-    if (this.invincible && Math.floor(Date.now() / 100) % 2 === 0) {
-      ctx.globalAlpha = 0.5;
-    }
-
-    if (this.hitFlash > 0) {
-      ctx.shadowBlur = 30;
-      ctx.shadowColor = '#ef4444';
+  render(ctx, skin = null) {
+    if (skin) {
+      SkinRenderer.renderPlayer(ctx, this, skin);
     } else {
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = this.config.glowColor;
+      SkinRenderer.renderDefaultPlayer(ctx, this);
     }
-
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size / 2);
-    gradient.addColorStop(0, '#c7d2fe');
-    gradient.addColorStop(0.3, this.config.color);
-    gradient.addColorStop(1, '#4338ca');
-
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.beginPath();
-    ctx.arc(-this.size / 6, -this.size / 6, this.size / 5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, this.size / 2 + 2, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.restore();
   }
 
   getBounds() {

@@ -9,6 +9,7 @@ import { AchievementSystem } from './achievements.js';
 import { SettingsManager, DEFAULT_SETTINGS } from './settings.js';
 import { DailyChallengeSystem } from './dailyChallenge.js';
 import { StatsSystem } from './stats.js';
+import { SkinManager, SkinRenderer } from './skins.js';
 
 const UI = {
   canvas: document.getElementById('gameCanvas'),
@@ -62,7 +63,15 @@ const UI = {
   statsBtn: document.getElementById('statsBtn'),
   statsOverlay: document.getElementById('statsOverlay'),
   statsCloseBtn: document.getElementById('statsCloseBtn'),
-  statsContent: document.getElementById('statsContent')
+  statsContent: document.getElementById('statsContent'),
+  skinsBtn: document.getElementById('skinsBtn'),
+  skinsBtnStart: document.getElementById('skinsBtnStart'),
+  skinsOverlay: document.getElementById('skinsOverlay'),
+  skinsCloseBtn: document.getElementById('skinsCloseBtn'),
+  skinsContent: document.getElementById('skinsContent'),
+  skinsProgress: document.getElementById('skinsProgress'),
+  skinsPreview: document.getElementById('skinsPreview'),
+  skinTabs: document.querySelectorAll('.skin-tab')
 };
 
 const storage = new StorageManager();
@@ -74,11 +83,13 @@ const dailyChallengeSystem = new DailyChallengeSystem(storage);
 const statsSystem = new StatsSystem(storage);
 const levelSystem = new LevelSystem(CONFIG.levels);
 const powerUpSystem = new PowerUpSystem(CONFIG.powerUps);
+const skinManager = new SkinManager(storage);
 const game = new Game(UI.canvas, CONFIG);
 
 inputManager.setTouchControlsElement(UI.touchControls);
 game.init(scoreManager, inputManager);
 game.registerSettingsManager(settingsManager);
+game.registerSkinManager(skinManager);
 
 function updateScoreUI(score) {
   UI.scoreEl.textContent = score;
@@ -428,6 +439,7 @@ window.__settingsManager = settingsManager;
 window.__achievementSystem = achievementSystem;
 window.__dailyChallengeSystem = dailyChallengeSystem;
 window.__statsSystem = statsSystem;
+window.__skinManager = skinManager;
 
 function initSettingsUI() {
   const settings = settingsManager.getSettings();
@@ -568,6 +580,267 @@ document.addEventListener('keydown', (e) => {
       closeAchievements();
     } else if (!UI.statsOverlay.classList.contains('hidden')) {
       closeStats();
+    } else if (!UI.skinsOverlay.classList.contains('hidden')) {
+      closeSkins();
     }
   }
 });
+
+let currentSkinTab = 'player';
+let previewAnimationId = null;
+
+function openSkins() {
+  UI.skinsOverlay.classList.remove('hidden');
+  if (game.getState() === GAME_STATES.PLAYING) {
+    game.pause();
+  }
+  renderSkinsList();
+  startSkinPreviewAnimation();
+}
+
+function closeSkins() {
+  UI.skinsOverlay.classList.add('hidden');
+  stopSkinPreviewAnimation();
+}
+
+function handleSkinTabChange(e) {
+  const tab = e.target.dataset.tab;
+  if (!tab) return;
+  
+  currentSkinTab = tab;
+  
+  UI.skinTabs.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  
+  renderSkinsList();
+}
+
+function renderSkinsList() {
+  const allSkins = skinManager.getAllSkins();
+  const unlockedCount = allSkins.filter(s => s.unlocked).length;
+  const totalCount = allSkins.length;
+  
+  UI.skinsProgress.textContent = `${unlockedCount} / ${totalCount}`;
+  
+  UI.skinsContent.innerHTML = allSkins.map(skin => {
+    const progress = skinManager.getUnlockProgress(skin.id);
+    const isLocked = !skin.unlocked;
+    const isSelected = skin.selected;
+    
+    let statusHtml = '';
+    if (isSelected) {
+      statusHtml = `<div class="skin-item-status selected">使用中</div>`;
+    } else if (isLocked) {
+      statusHtml = `<div class="skin-item-status locked">未解锁</div>`;
+    } else {
+      statusHtml = `<div class="skin-item-status unlocked">已解锁</div>`;
+    }
+    
+    let progressHtml = '';
+    if (isLocked && skin.unlock.type !== 'default') {
+      progressHtml = `
+        <div class="skin-item-progress">
+          <div class="skin-item-progress-track">
+            <div class="skin-item-progress-fill" style="width: ${progress.percent}%"></div>
+          </div>
+          <div class="skin-item-progress-text">${progress.current} / ${progress.total}</div>
+        </div>
+      `;
+    }
+    
+    const lockIcon = isLocked ? '<div class="skin-item-lock">🔒</div>' : '';
+    
+    const previewHtml = isLocked 
+      ? `<div class="skin-item-icon">${skin.icon}</div>`
+      : `<div class="skin-item-preview"><canvas data-skin-id="${skin.id}" width="60" height="60"></canvas></div>`;
+    
+    let displayDesc = skin.description;
+    if (isLocked && skin.unlock.description) {
+      displayDesc = skin.unlock.description;
+    }
+    
+    return `
+      <div class="skin-item ${isLocked ? 'locked' : ''} ${isSelected ? 'selected' : ''}" data-skin-id="${skin.id}">
+        ${lockIcon}
+        ${previewHtml}
+        <div class="skin-item-info">
+          <div class="skin-item-name">${skin.name}</div>
+          <div class="skin-item-desc">${displayDesc}</div>
+          ${statusHtml}
+          ${progressHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  setTimeout(() => {
+    allSkins.forEach(skin => {
+      if (skin.unlocked) {
+        const canvas = UI.skinsContent.querySelector(`canvas[data-skin-id="${skin.id}"]`);
+        if (canvas) {
+          renderSkinPreviewIcon(canvas, skin);
+        }
+      }
+    });
+  }, 0);
+  
+  UI.skinsContent.querySelectorAll('.skin-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const skinId = item.dataset.skinId;
+      if (skinManager.isUnlocked(skinId)) {
+        skinManager.selectSkin(skinId);
+        renderSkinsList();
+      }
+    });
+  });
+}
+
+function renderSkinPreviewIcon(canvas, skin) {
+  const ctx = canvas.getContext('2d');
+  const size = canvas.width;
+  const center = size / 2;
+  
+  ctx.clearRect(0, 0, size, size);
+  
+  const playerSkin = skin.player;
+  let bodyColor = playerSkin.color;
+  let innerColor = playerSkin.innerColor;
+  let outerColor = playerSkin.outerColor;
+  let glowColor = playerSkin.glowColor;
+  
+  if (playerSkin.rainbow) {
+    const hue = (Date.now() * 0.1) % 360;
+    bodyColor = `hsl(${hue}, 70%, 55%)`;
+    glowColor = `hsla(${hue}, 70%, 55%, 0.6)`;
+    innerColor = `hsl(${hue}, 80%, 85%)`;
+    outerColor = `hsl(${hue}, 70%, 35%)`;
+  }
+  
+  ctx.save();
+  ctx.translate(center, center);
+  
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = glowColor;
+  
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size / 3);
+  gradient.addColorStop(0, innerColor);
+  gradient.addColorStop(0.3, bodyColor);
+  gradient.addColorStop(1, outerColor);
+  
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  
+  const radius = size / 3;
+  switch (playerSkin.shape) {
+    case 'star':
+      for (let i = 0; i < 10; i++) {
+        const angle = (i * Math.PI) / 5 - Math.PI / 2;
+        const r = i % 2 === 0 ? radius : radius * 0.5;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      break;
+    case 'diamond':
+      ctx.moveTo(0, -radius);
+      ctx.lineTo(radius * 0.7, 0);
+      ctx.lineTo(0, radius);
+      ctx.lineTo(-radius * 0.7, 0);
+      ctx.closePath();
+      break;
+    default:
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      break;
+  }
+  ctx.fill();
+  
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.beginPath();
+  ctx.arc(-radius / 3, -radius / 3, radius / 4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.restore();
+}
+
+function startSkinPreviewAnimation() {
+  if (previewAnimationId) return;
+  
+  function animate() {
+    const currentSkin = skinManager.getCurrentSkin();
+    
+    UI.skinsPreview.innerHTML = '<canvas width="80" height="80"></canvas>';
+    const canvas = UI.skinsPreview.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    renderSkinPreviewIcon(canvas, currentSkin);
+    
+    previewAnimationId = requestAnimationFrame(animate);
+  }
+  
+  animate();
+}
+
+function stopSkinPreviewAnimation() {
+  if (previewAnimationId) {
+    cancelAnimationFrame(previewAnimationId);
+    previewAnimationId = null;
+  }
+}
+
+function showSkinUnlockToast(skin) {
+  const toast = document.createElement('div');
+  toast.className = 'achievement-toast skin-unlock-toast';
+  toast.innerHTML = `
+    <div class="achievement-toast-icon">${skin.icon}</div>
+    <div class="achievement-toast-content">
+      <div class="achievement-toast-label" style="color: #fbcfe8;">🎨 新皮肤解锁</div>
+      <div class="achievement-toast-name">${skin.name}</div>
+      <div class="achievement-toast-desc">${skin.description}</div>
+    </div>
+  `;
+  
+  UI.achievementToastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 4000);
+}
+
+game.onSkinUnlock = (skin) => {
+  showSkinUnlockToast(skin);
+};
+
+skinManager.onChange((type, newValue, oldValue) => {
+  if (type === 'unlock') {
+    const skin = skinManager.getSkin(newValue);
+    if (skin) {
+      showSkinUnlockToast(skin);
+    }
+  }
+});
+
+UI.skinsBtn.addEventListener('click', openSkins);
+UI.skinsBtnStart.addEventListener('click', openSkins);
+UI.skinsCloseBtn.addEventListener('click', closeSkins);
+
+UI.skinTabs.forEach(tab => {
+  tab.addEventListener('click', handleSkinTabChange);
+});
+
+UI.skinsOverlay.addEventListener('click', (e) => {
+  if (e.target === UI.skinsOverlay) {
+    closeSkins();
+  }
+});
+
+skinManager.checkUnlocks(
+  { currentScore: 0 },
+  achievementSystem,
+  scoreManager
+);

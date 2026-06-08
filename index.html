@@ -73,6 +73,7 @@
             </div>
           </div>
           
+          <button class="btn btn-secondary" id="skinsBtnStart">🎨 皮肤收藏</button>
           <button class="btn btn-primary" id="startBtn">开始游戏</button>
         </div>
       </div>
@@ -119,6 +120,7 @@
     <div class="controls">
       <button class="btn btn-control" id="pauseBtn" disabled>暂停</button>
       <button class="btn btn-control" id="restartBtn2" disabled>重新开始</button>
+      <button class="btn btn-control" id="skinsBtn">🎨 皮肤</button>
       <button class="btn btn-control" id="achievementsBtn">🏆 成就</button>
       <button class="btn btn-control" id="statsBtn">📊 统计</button>
       <button class="btn btn-control" id="settingsBtn">⚙️ 设置</button>
@@ -206,6 +208,29 @@
           <button class="stats-close" id="statsCloseBtn">✕</button>
         </div>
         <div class="stats-content" id="statsContent">
+        </div>
+      </div>
+    </div>
+
+    <div class="skins-overlay hidden" id="skinsOverlay">
+      <div class="skins-panel">
+        <div class="skins-header">
+          <h2 class="skins-title">🎨 皮肤收藏</h2>
+          <div class="skins-progress">
+            <span id="skinsProgress">0 / 5</span>
+          </div>
+          <button class="skins-close" id="skinsCloseBtn">✕</button>
+        </div>
+        <div class="skins-tabs">
+          <button class="skin-tab active" data-tab="player">👤 外观</button>
+          <button class="skin-tab" data-tab="trail">✨ 拖尾</button>
+          <button class="skin-tab" data-tab="effect">💫 特效</button>
+        </div>
+        <div class="skins-content" id="skinsContent">
+        </div>
+        <div class="skins-footer">
+          <div class="skins-preview" id="skinsPreview">
+          </div>
         </div>
       </div>
     </div>
