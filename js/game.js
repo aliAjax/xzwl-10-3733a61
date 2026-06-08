@@ -129,7 +129,6 @@ export class Game {
   }
 
   reset() {
-    console.log('[Game] reset: clearing entities and timers');
     this.entities = [];
     this.starSpawnTimer = 0;
     this.obstacleSpawnTimer = 0;

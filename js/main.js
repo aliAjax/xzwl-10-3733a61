@@ -34,7 +34,6 @@ const game = new Game(UI.canvas, CONFIG);
 game.init(scoreManager, inputManager);
 
 function updateScoreUI(score) {
-  console.log(`[UI] updateScoreUI: ${score}`);
   UI.scoreEl.textContent = score;
 }
 
@@ -49,7 +48,6 @@ function updateHighScoreUI() {
 }
 
 function updateLevelUI(level) {
-  console.log(`[UI] updateLevelUI: ${level}`);
   UI.levelEl.textContent = level;
 }
 

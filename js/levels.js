@@ -13,7 +13,6 @@ export class LevelSystem {
 
   reset() {
     this.currentLevel = 0;
-    console.log(`[LevelSystem] reset: level = ${this.currentLevel + 1}`);
     if (this.onLevelChange) {
       this.onLevelChange(this.currentLevel + 1);
     }
@@ -26,10 +25,8 @@ export class LevelSystem {
     const newLevel = this.calculateLevel(currentScore);
 
     if (newLevel !== this.currentLevel) {
-      const oldLevel = this.currentLevel + 1;
       this.currentLevel = newLevel;
       const newLevelNum = this.currentLevel + 1;
-      console.log(`[LevelSystem] level up: ${oldLevel} → ${newLevelNum} (score: ${currentScore})`);
       this.applyLevelChanges();
       if (this.onLevelChange) {
         this.onLevelChange(newLevelNum);
