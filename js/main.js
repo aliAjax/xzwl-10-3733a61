@@ -79,6 +79,8 @@ function hideAllOverlays() {
   UI.gameOverOverlay.classList.add('hidden');
 }
 
+let previousState = GAME_STATES.IDLE;
+
 function handleStateChange(state) {
   hideAllOverlays();
   
@@ -93,7 +95,9 @@ function handleStateChange(state) {
       UI.pauseBtn.disabled = false;
       UI.restartBtn2.disabled = false;
       UI.pauseBtn.textContent = '暂停';
-      achievementSystem.resetGameSession();
+      if (previousState === GAME_STATES.IDLE || previousState === GAME_STATES.GAME_OVER) {
+        achievementSystem.resetGameSession();
+      }
       break;
       
     case GAME_STATES.PAUSED:
@@ -106,6 +110,8 @@ function handleStateChange(state) {
       UI.pauseBtn.textContent = '暂停';
       break;
   }
+  
+  previousState = state;
 }
 
 function handleGameOver(score, isNewRecord) {

@@ -92,11 +92,14 @@ export class AchievementSystem {
   }
 
   check(game) {
-    if (!game || game.getState() !== GAME_STATES.PLAYING) return;
+    if (!game) return;
+    
+    const state = game.getState();
+    if (state !== GAME_STATES.PLAYING && state !== GAME_STATES.GAME_OVER) return;
 
     this.sessionState.currentScore = game.getScore();
     this.sessionState.currentLives = game.getLives();
-    this.sessionState.isPlaying = true;
+    this.sessionState.isPlaying = state === GAME_STATES.PLAYING;
 
     for (const achievement of this.achievements) {
       if (this.isUnlocked(achievement.id)) continue;
