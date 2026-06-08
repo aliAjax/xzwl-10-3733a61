@@ -1,12 +1,14 @@
 import { CONFIG } from './config.js';
 
-const CHALLENGE_TYPES = {
+export const CHALLENGE_TYPES = {
   SCORE_TIME: 'score_time',
   NO_DAMAGE_STARS: 'no_damage_stars',
-  HEAL_SURVIVE: 'heal_survive'
+  HEAL_SURVIVE: 'heal_survive',
+  SURVIVE_TO_LEVEL: 'survive_to_level',
+  MUST_USE_HEAL: 'must_use_heal'
 };
 
-const CHALLENGE_TEMPLATES = [
+export const CHALLENGE_TEMPLATES = [
   {
     type: CHALLENGE_TYPES.SCORE_TIME,
     titles: ['速战速决', '闪电战', '时间赛跑', '竞速挑战', '分秒必争'],
@@ -45,6 +47,32 @@ const CHALLENGE_TEMPLATES = [
     colors: ['#ef4444', '#ec4899', '#f97316', '#eab308', '#8b5cf6'],
     targetRange: [3, 7],
     constraintRange: [1, 3]
+  },
+  {
+    type: CHALLENGE_TYPES.SURVIVE_TO_LEVEL,
+    titles: ['幸存者', '坚持到底', '耐力考验', '持久战', '屹立不倒'],
+    descriptions: [
+      '存活到第{target}等级',
+      '坚持战斗到{target}级',
+      '生存挑战：达到{target}级'
+    ],
+    icons: ['🏃', '💫', '🛡️', '⭐', '🎖️'],
+    colors: ['#10b981', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6'],
+    targetRange: [3, 8],
+    constraintRange: [0, 0]
+  },
+  {
+    type: CHALLENGE_TYPES.MUST_USE_HEAL,
+    titles: ['治疗大师', '回血达人', '生命守护者', '续命专家', '治愈者'],
+    descriptions: [
+      '使用至少{constraint}次回血道具，存活到第{target}级',
+      '收集{constraint}个回血道具，生存至{target}级',
+      '使用{constraint}次回血，坚持到{target}级'
+    ],
+    icons: ['💖', '💝', '🩹', '✨', '🌟'],
+    colors: ['#ec4899', '#f472b6', '#f97316', '#eab308', '#22c55e'],
+    targetRange: [3, 6],
+    constraintRange: [1, 4]
   }
 ];
 
@@ -232,6 +260,18 @@ export class DailyChallengeSystem {
           completed = true;
         }
         break;
+
+      case CHALLENGE_TYPES.SURVIVE_TO_LEVEL:
+        if (progress.survivedToLevel >= challenge.target) {
+          completed = true;
+        }
+        break;
+
+      case CHALLENGE_TYPES.MUST_USE_HEAL:
+        if (progress.survivedToLevel >= challenge.target && progress.healUsed >= challenge.constraint) {
+          completed = true;
+        }
+        break;
     }
 
     if (completed) {
@@ -307,6 +347,18 @@ export class DailyChallengeSystem {
           : 1;
         currentProgress = Math.min(100, Math.min(levelProgress, healProgress) * 100);
         break;
+
+      case CHALLENGE_TYPES.SURVIVE_TO_LEVEL:
+        currentProgress = Math.min(100, (progress.survivedToLevel / this.currentChallenge.target) * 100);
+        break;
+
+      case CHALLENGE_TYPES.MUST_USE_HEAL:
+        const surviveProgress = progress.survivedToLevel / this.currentChallenge.target;
+        const mustHealProgress = this.currentChallenge.constraint > 0 
+          ? progress.healUsed / this.currentChallenge.constraint 
+          : 1;
+        currentProgress = Math.min(100, Math.min(surviveProgress, mustHealProgress) * 100);
+        break;
     }
 
     const completedThisSession = progress.completed && progress.completedAt &&
@@ -347,6 +399,17 @@ export class DailyChallengeSystem {
       case CHALLENGE_TYPES.HEAL_SURVIVE:
         value = progress.survivedToLevel;
         label = '等级';
+        break;
+
+      case CHALLENGE_TYPES.SURVIVE_TO_LEVEL:
+        value = progress.survivedToLevel;
+        label = '等级';
+        break;
+
+      case CHALLENGE_TYPES.MUST_USE_HEAL:
+        value = progress.healUsed;
+        total = this.currentChallenge.constraint;
+        label = '回血使用';
         break;
     }
 

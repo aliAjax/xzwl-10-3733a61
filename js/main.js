@@ -8,6 +8,7 @@ import { PowerUpSystem } from './powerups.js';
 import { AchievementSystem } from './achievements.js';
 import { SettingsManager, DEFAULT_SETTINGS } from './settings.js';
 import { DailyChallengeSystem } from './dailyChallenge.js';
+import { CustomChallengeSystem, CHALLENGE_MODES } from './customChallenge.js';
 import { StatsSystem } from './stats.js';
 import { SkinManager } from './skins.js';
 import { REPLAY_STATES } from './replay.js';
@@ -99,7 +100,36 @@ const UI = {
   replayRestartBtn: document.getElementById('replayRestartBtn'),
   replaySpeedBtn: document.getElementById('replaySpeedBtn'),
   replayExitBtn: document.getElementById('replayExitBtn'),
-  replayBackBtn: document.getElementById('replayBackBtn')
+  replayBackBtn: document.getElementById('replayBackBtn'),
+  challengeModeTabs: document.querySelectorAll('.challenge-mode-tab'),
+  customChallengeCard: document.getElementById('customChallengeCard'),
+  customChallengeCardBody: document.getElementById('customChallengeCardBody'),
+  customChallengeCardStatus: document.getElementById('customChallengeCardStatus'),
+  manageCustomChallengesBtn: document.getElementById('manageCustomChallengesBtn'),
+  customChallengesOverlay: document.getElementById('customChallengesOverlay'),
+  customChallengesCloseBtn: document.getElementById('customChallengesCloseBtn'),
+  customChallengesBackBtn: document.getElementById('customChallengesBackBtn'),
+  customChallengesList: document.getElementById('customChallengesList'),
+  createChallengeBtn: document.getElementById('createChallengeBtn'),
+  createChallengeOverlay: document.getElementById('createChallengeOverlay'),
+  createChallengeCloseBtn: document.getElementById('createChallengeCloseBtn'),
+  cancelCreateChallengeBtn: document.getElementById('cancelCreateChallengeBtn'),
+  confirmCreateChallengeBtn: document.getElementById('confirmCreateChallengeBtn'),
+  challengeTypeSelect: document.getElementById('challengeTypeSelect'),
+  targetRange: document.getElementById('targetRange'),
+  targetRangeValue: document.getElementById('targetRangeValue'),
+  targetLabel: document.getElementById('targetLabel'),
+  targetGroup: document.getElementById('targetGroup'),
+  constraintRange: document.getElementById('constraintRange'),
+  constraintRangeValue: document.getElementById('constraintRangeValue'),
+  constraintLabel: document.getElementById('constraintLabel'),
+  constraintGroup: document.getElementById('constraintGroup'),
+  iconSelector: document.getElementById('iconSelector'),
+  colorSelector: document.getElementById('colorSelector'),
+  challengeTitleInput: document.getElementById('challengeTitleInput'),
+  challengePreviewIcon: document.getElementById('challengePreviewIcon'),
+  challengePreviewTitle: document.getElementById('challengePreviewTitle'),
+  challengePreviewDesc: document.getElementById('challengePreviewDesc')
 };
 
 const storage = new StorageManager();
@@ -108,11 +138,14 @@ const inputManager = new InputManager();
 const settingsManager = new SettingsManager(storage);
 const achievementSystem = new AchievementSystem(storage);
 const dailyChallengeSystem = new DailyChallengeSystem(storage);
+const customChallengeSystem = new CustomChallengeSystem(storage);
 const statsSystem = new StatsSystem(storage);
 const levelSystem = new LevelSystem(CONFIG.levels);
 const powerUpSystem = new PowerUpSystem(CONFIG.powerUps);
 const skinManager = new SkinManager(storage);
 const game = new Game(UI.canvas, CONFIG);
+
+let activeChallengeMode = CHALLENGE_MODES.DAILY;
 
 inputManager.setTouchControlsElement(UI.touchControls);
 game.init(scoreManager, inputManager);
@@ -146,6 +179,18 @@ function hideAllOverlays() {
   UI.gameOverOverlay.classList.add('hidden');
   UI.trainingOverlay.classList.add('hidden');
   UI.replayOverlay.classList.add('hidden');
+  UI.customChallengesOverlay.classList.add('hidden');
+  UI.createChallengeOverlay.classList.add('hidden');
+}
+
+function getActiveChallengeSystem() {
+  switch (activeChallengeMode) {
+    case CHALLENGE_MODES.CUSTOM:
+      return customChallengeSystem;
+    case CHALLENGE_MODES.DAILY:
+    default:
+      return dailyChallengeSystem;
+  }
 }
 
 function updateDailyChallengeCard() {
@@ -167,8 +212,59 @@ function updateDailyChallengeCard() {
   }
 }
 
+function updateCustomChallengeCard() {
+  const activeChallenge = customChallengeSystem.getActiveChallenge();
+  
+  if (!activeChallenge) {
+    UI.customChallengeCardBody.innerHTML = `
+      <div class="challenge-card-icon">➕</div>
+      <div class="challenge-card-info">
+        <div class="challenge-card-title">暂无选中的挑战</div>
+        <div class="challenge-card-desc">点击下方按钮创建或选择挑战</div>
+      </div>
+    `;
+    UI.customChallengeCardStatus.textContent = '未选择';
+    UI.customChallengeCardStatus.classList.remove('completed');
+    return;
+  }
+
+  const isCompleted = customChallengeSystem.isActiveChallengeCompleted();
+  const bestProgress = Math.round(activeChallenge.bestProgress || 0);
+
+  UI.customChallengeCardBody.innerHTML = `
+    <div class="challenge-card-icon">${activeChallenge.icon}</div>
+    <div class="challenge-card-info">
+      <div class="challenge-card-title">${activeChallenge.title}</div>
+      <div class="challenge-card-desc">${activeChallenge.description}</div>
+      <div class="challenge-card-progress">最佳进度: ${bestProgress}%</div>
+    </div>
+  `;
+
+  if (isCompleted) {
+    UI.customChallengeCard.classList.add('completed');
+    UI.customChallengeCardStatus.textContent = '✓ 已完成';
+    UI.customChallengeCardStatus.classList.add('completed');
+  } else {
+    UI.customChallengeCard.classList.remove('completed');
+    UI.customChallengeCardStatus.textContent = '进行中';
+    UI.customChallengeCardStatus.classList.remove('completed');
+  }
+}
+
 function showChallengeProgress() {
-  const challenge = dailyChallengeSystem.getTodayChallenge();
+  const system = getActiveChallengeSystem();
+  let challenge;
+  
+  if (activeChallengeMode === CHALLENGE_MODES.CUSTOM) {
+    challenge = customChallengeSystem.getActiveChallenge();
+    if (!challenge) {
+      hideChallengeProgress();
+      return;
+    }
+  } else {
+    challenge = dailyChallengeSystem.getTodayChallenge();
+  }
+  
   UI.challengeProgressIcon.textContent = challenge.icon;
   UI.challengeProgressLabel.textContent = challenge.title;
   UI.challengeProgressBar.classList.remove('hidden');
@@ -182,8 +278,9 @@ function hideChallengeProgress() {
 }
 
 function updateChallengeProgress() {
-  const display = dailyChallengeSystem.getProgressDisplay();
-  const result = dailyChallengeSystem.getSessionResult();
+  const system = getActiveChallengeSystem();
+  const display = system.getProgressDisplay();
+  const result = system.getSessionResult();
 
   if (display) {
     UI.challengeProgressValue.textContent = `${display.value} / ${display.total}`;
@@ -198,10 +295,19 @@ function updateChallengeProgress() {
 }
 
 function updateChallengeResult() {
-  const result = dailyChallengeSystem.getSessionResult();
+  const system = getActiveChallengeSystem();
+  const result = system.getSessionResult();
+  
+  if (activeChallengeMode === CHALLENGE_MODES.CUSTOM && !customChallengeSystem.getActiveChallenge()) {
+    UI.challengeResultCard.classList.add('hidden');
+    return;
+  }
+  
+  UI.challengeResultCard.classList.remove('hidden');
+  
   if (!result) return;
 
-  const { challenge, completed, failed, progress, alreadyCompletedToday, completedThisSession, failedReason } = result;
+  const { challenge, completed, failed, progress, alreadyCompleted, completedThisSession, failedReason } = result;
 
   UI.challengeResultIcon.textContent = challenge.icon;
   UI.challengeResultName.textContent = challenge.title;
@@ -210,14 +316,16 @@ function updateChallengeResult() {
   UI.challengeResultStatus.classList.remove('success', 'failed', 'already');
   UI.challengeResultProgressFill.classList.remove('success', 'failed');
 
+  const modeLabel = activeChallengeMode === CHALLENGE_MODES.CUSTOM ? '自定义' : '今日';
+  
   if (completedThisSession) {
     UI.challengeResultStatus.textContent = '🎉 挑战完成！';
     UI.challengeResultStatus.classList.add('success');
   } else if (failed) {
     UI.challengeResultStatus.textContent = failedReason || '挑战未完成';
     UI.challengeResultStatus.classList.add('failed');
-  } else if (alreadyCompletedToday && !completed) {
-    UI.challengeResultStatus.textContent = '今日挑战已完成 ✓';
+  } else if (alreadyCompleted && !completed) {
+    UI.challengeResultStatus.textContent = `${modeLabel}挑战已完成 ✓`;
     UI.challengeResultStatus.classList.add('already');
   } else if (completed) {
     UI.challengeResultStatus.textContent = '🎉 挑战完成！';
@@ -240,6 +348,27 @@ function updateChallengeResult() {
 
 let previousState = GAME_STATES.IDLE;
 
+function handleChallengeModeChange(mode) {
+  activeChallengeMode = mode;
+  
+  UI.challengeModeTabs.forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.mode === mode);
+  });
+  
+  UI.dailyChallengeCard.classList.toggle('hidden', mode !== CHALLENGE_MODES.DAILY);
+  UI.customChallengeCard.classList.toggle('hidden', mode !== CHALLENGE_MODES.CUSTOM);
+  
+  if (mode === CHALLENGE_MODES.DAILY) {
+    updateDailyChallengeCard();
+  } else {
+    updateCustomChallengeCard();
+  }
+  
+  if (game.getState() === GAME_STATES.PLAYING) {
+    showChallengeProgress();
+  }
+}
+
 function handleStateChange(state) {
   hideAllOverlays();
   
@@ -253,6 +382,7 @@ function handleStateChange(state) {
       UI.pauseBtn.disabled = true;
       UI.restartBtn2.disabled = true;
       updateDailyChallengeCard();
+      updateCustomChallengeCard();
       hideChallengeProgress();
       break;
       
@@ -263,6 +393,7 @@ function handleStateChange(state) {
       if (previousState === GAME_STATES.IDLE || previousState === GAME_STATES.GAME_OVER) {
         achievementSystem.resetGameSession();
         dailyChallengeSystem.resetSessionProgress();
+        customChallengeSystem.resetSessionProgress();
       }
       showChallengeProgress();
       break;
@@ -322,23 +453,35 @@ game.registerLevelSystem(levelSystem);
 game.registerPowerUpSystem(powerUpSystem);
 game.registerAchievementSystem(achievementSystem);
 game.registerDailyChallengeSystem(dailyChallengeSystem);
+game.registerCustomChallengeSystem(customChallengeSystem);
 game.registerStatsSystem(statsSystem);
 
 achievementSystem.onUnlock(showAchievementToast);
 
 dailyChallengeSystem.onCompletion((challenge) => {
-  showChallengeCompletionToast(challenge);
-  updateDailyChallengeCard();
-  updateChallengeProgress();
+  if (activeChallengeMode === CHALLENGE_MODES.DAILY) {
+    showChallengeCompletionToast(challenge, '每日');
+    updateDailyChallengeCard();
+    updateChallengeProgress();
+  }
 });
 
-function showChallengeCompletionToast(challenge) {
+customChallengeSystem.onCompletion((challenge) => {
+  if (activeChallengeMode === CHALLENGE_MODES.CUSTOM) {
+    showChallengeCompletionToast(challenge, '自定义');
+    updateCustomChallengeCard();
+    updateChallengeProgress();
+  }
+});
+
+function showChallengeCompletionToast(challenge, mode = '每日') {
   const toast = document.createElement('div');
   toast.className = 'achievement-toast';
+  const labelColor = mode === '自定义' ? '#fbbf24' : 'var(--accent-green)';
   toast.innerHTML = `
     <div class="achievement-toast-icon">${challenge.icon}</div>
     <div class="achievement-toast-content">
-      <div class="achievement-toast-label" style="color: var(--accent-green);">每日挑战完成</div>
+      <div class="achievement-toast-label" style="color: ${labelColor};">${mode}挑战完成</div>
       <div class="achievement-toast-name">${challenge.title}</div>
       <div class="achievement-toast-desc">${challenge.description}</div>
     </div>
@@ -586,6 +729,7 @@ function idleLoop() {
   
   if (game.getState() === GAME_STATES.PLAYING && now - lastChallengeCheck > 500) {
     dailyChallengeSystem.checkCompletion();
+    customChallengeSystem.checkCompletion();
     updateChallengeProgress();
     lastChallengeCheck = now;
   }
@@ -1200,3 +1344,306 @@ skinManager.checkUnlocks(
   achievementSystem,
   scoreManager
 );
+
+function openCustomChallenges() {
+  hideAllOverlays();
+  renderCustomChallengesList();
+  UI.customChallengesOverlay.classList.remove('hidden');
+}
+
+function closeCustomChallenges() {
+  UI.customChallengesOverlay.classList.add('hidden');
+  UI.startOverlay.classList.remove('hidden');
+}
+
+function renderCustomChallengesList() {
+  const challenges = customChallengeSystem.getAllChallenges();
+  const activeId = customChallengeSystem.activeChallengeId;
+
+  if (challenges.length === 0) {
+    UI.customChallengesList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🎮</div>
+        <div class="empty-state-text">暂无自定义挑战</div>
+        <div class="empty-state-desc">点击下方按钮创建你的第一个挑战</div>
+      </div>
+    `;
+    return;
+  }
+
+  UI.customChallengesList.innerHTML = challenges.map(challenge => {
+    const isActive = challenge.id === activeId;
+    const isCompleted = challenge.completed;
+    const bestProgress = Math.round(challenge.bestProgress || 0);
+
+    return `
+      <div class="custom-challenge-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}" data-id="${challenge.id}">
+        <div class="custom-challenge-icon">${challenge.icon}</div>
+        <div class="custom-challenge-info">
+          <div class="custom-challenge-title">${challenge.title}</div>
+          <div class="custom-challenge-desc">${challenge.description}</div>
+          <div class="custom-challenge-meta">
+            <span class="custom-challenge-progress">最佳: ${bestProgress}%</span>
+            ${isCompleted ? '<span class="custom-challenge-badge">✓ 已完成</span>' : ''}
+          </div>
+        </div>
+        <div class="custom-challenge-actions">
+          <button class="btn btn-small ${isActive ? 'btn-primary' : 'btn-secondary'}" data-action="select" data-id="${challenge.id}">
+            ${isActive ? '已选择' : '选择'}
+          </button>
+          <button class="btn btn-small btn-warning" data-action="reset" data-id="${challenge.id}" title="重置进度">
+            🔄
+          </button>
+          <button class="btn btn-small btn-danger" data-action="delete" data-id="${challenge.id}" title="删除">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  UI.customChallengesList.querySelectorAll('.custom-challenge-item').forEach(item => {
+    const id = item.dataset.id;
+    
+    item.querySelector('[data-action="select"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (customChallengeSystem.selectChallenge(id)) {
+        handleChallengeModeChange(CHALLENGE_MODES.CUSTOM);
+        renderCustomChallengesList();
+      }
+    });
+
+    item.querySelector('[data-action="reset"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('确定要重置这个挑战的进度吗？')) {
+        customChallengeSystem.resetChallengeProgress(id);
+        renderCustomChallengesList();
+        updateCustomChallengeCard();
+      }
+    });
+
+    item.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('确定要删除这个挑战吗？此操作不可撤销。')) {
+        customChallengeSystem.deleteChallenge(id);
+        renderCustomChallengesList();
+        updateCustomChallengeCard();
+      }
+    });
+  });
+}
+
+let currentCreateForm = {
+  type: null,
+  target: 50,
+  constraint: 1,
+  icon: '🎯',
+  color: '#6366f1',
+  title: ''
+};
+
+function openCreateChallenge() {
+  const templates = customChallengeSystem.getChallengeTemplates();
+  
+  UI.challengeTypeSelect.innerHTML = templates.map((t, index) => {
+    const typeLabels = {
+      score_time: '⏱️ 限时得分',
+      no_damage_stars: '🛡️ 无伤收集星星',
+      heal_survive: '❤️ 回血生存',
+      survive_to_level: '🏃 存活到指定等级',
+      must_use_heal: '💖 必须使用回血'
+    };
+    return `<option value="${t.type}" data-index="${index}">${typeLabels[t.type] || t.type}</option>`;
+  }).join('');
+
+  currentCreateForm.type = templates[0].type;
+  updateCreateFormUI();
+  
+  hideAllOverlays();
+  UI.createChallengeOverlay.classList.remove('hidden');
+}
+
+function closeCreateChallenge() {
+  UI.createChallengeOverlay.classList.add('hidden');
+  UI.customChallengesOverlay.classList.remove('hidden');
+}
+
+function updateCreateFormUI() {
+  const templates = customChallengeSystem.getChallengeTemplates();
+  const template = templates.find(t => t.type === currentCreateForm.type);
+  
+  if (!template) return;
+
+  UI.targetRange.min = template.targetRange[0];
+  UI.targetRange.max = template.targetRange[1];
+  UI.targetRange.value = Math.min(Math.max(currentCreateForm.target, template.targetRange[0]), template.targetRange[1]);
+  currentCreateForm.target = parseInt(UI.targetRange.value);
+  UI.targetRangeValue.textContent = currentCreateForm.target;
+
+  const targetLabels = {
+    score_time: '目标分数',
+    no_damage_stars: '收集星星数量',
+    heal_survive: '目标等级',
+    survive_to_level: '目标等级',
+    must_use_heal: '目标等级'
+  };
+  UI.targetLabel.textContent = targetLabels[currentCreateForm.type] || '目标值';
+
+  if (template.constraintRange[0] === template.constraintRange[1]) {
+    UI.constraintGroup.classList.add('hidden');
+    currentCreateForm.constraint = template.constraintRange[0];
+  } else {
+    UI.constraintGroup.classList.remove('hidden');
+    UI.constraintRange.min = template.constraintRange[0];
+    UI.constraintRange.max = template.constraintRange[1];
+    UI.constraintRange.value = Math.min(Math.max(currentCreateForm.constraint, template.constraintRange[0]), template.constraintRange[1]);
+    currentCreateForm.constraint = parseInt(UI.constraintRange.value);
+    UI.constraintRangeValue.textContent = currentCreateForm.constraint;
+
+    const constraintLabels = {
+      score_time: '时间限制（秒）',
+      no_damage_stars: '约束值',
+      heal_survive: '使用回血次数',
+      must_use_heal: '使用回血次数'
+    };
+    UI.constraintLabel.textContent = constraintLabels[currentCreateForm.type] || '约束值';
+  }
+
+  UI.iconSelector.innerHTML = template.icons.map(icon => `
+    <button class="icon-btn ${currentCreateForm.icon === icon ? 'selected' : ''}" data-icon="${icon}">${icon}</button>
+  `).join('');
+
+  UI.iconSelector.querySelectorAll('.icon-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentCreateForm.icon = btn.dataset.icon;
+      updateCreateFormUI();
+    });
+  });
+
+  UI.colorSelector.innerHTML = template.colors.map(color => `
+    <button class="color-btn ${currentCreateForm.color === color ? 'selected' : ''}" data-color="${color}" style="background-color: ${color};"></button>
+  `).join('');
+
+  UI.colorSelector.querySelectorAll('.color-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentCreateForm.color = btn.dataset.color;
+      updateCreateFormUI();
+    });
+  });
+
+  if (!currentCreateForm.title) {
+    currentCreateForm.title = template.titles[0];
+  }
+  UI.challengeTitleInput.placeholder = `默认: ${template.titles[0]}`;
+
+  updateChallengePreview();
+}
+
+function updateChallengePreview() {
+  const templates = customChallengeSystem.getChallengeTemplates();
+  const template = templates.find(t => t.type === currentCreateForm.type);
+  
+  if (!template) return;
+
+  const description = template.descriptions[0]
+    .replace('{target}', currentCreateForm.target)
+    .replace('{constraint}', currentCreateForm.constraint);
+
+  UI.challengePreviewIcon.textContent = currentCreateForm.icon;
+  UI.challengePreviewTitle.textContent = currentCreateForm.title || template.titles[0];
+  UI.challengePreviewDesc.textContent = description;
+}
+
+function confirmCreateChallenge() {
+  const templates = customChallengeSystem.getChallengeTemplates();
+  const template = templates.find(t => t.type === currentCreateForm.type);
+  
+  if (!template) return;
+
+  const title = currentCreateForm.title.trim() || template.titles[0];
+
+  const challenge = customChallengeSystem.createChallenge({
+    type: currentCreateForm.type,
+    target: currentCreateForm.target,
+    constraint: currentCreateForm.constraint,
+    icon: currentCreateForm.icon,
+    color: currentCreateForm.color,
+    title: title
+  });
+
+  if (challenge) {
+    customChallengeSystem.selectChallenge(challenge.id);
+    handleChallengeModeChange(CHALLENGE_MODES.CUSTOM);
+    closeCreateChallenge();
+    renderCustomChallengesList();
+  }
+}
+
+UI.challengeModeTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const mode = tab.dataset.mode;
+    handleChallengeModeChange(mode);
+  });
+});
+
+UI.manageCustomChallengesBtn.addEventListener('click', openCustomChallenges);
+UI.customChallengesCloseBtn.addEventListener('click', closeCustomChallenges);
+UI.customChallengesBackBtn.addEventListener('click', closeCustomChallenges);
+
+UI.createChallengeBtn.addEventListener('click', openCreateChallenge);
+UI.createChallengeCloseBtn.addEventListener('click', closeCreateChallenge);
+UI.cancelCreateChallengeBtn.addEventListener('click', closeCreateChallenge);
+UI.confirmCreateChallengeBtn.addEventListener('click', confirmCreateChallenge);
+
+UI.challengeTypeSelect.addEventListener('change', (e) => {
+  currentCreateForm.type = e.target.value;
+  currentCreateForm.title = '';
+  const templates = customChallengeSystem.getChallengeTemplates();
+  const template = templates.find(t => t.type === currentCreateForm.type);
+  if (template) {
+    currentCreateForm.icon = template.icons[0];
+    currentCreateForm.color = template.colors[0];
+    currentCreateForm.target = Math.floor((template.targetRange[0] + template.targetRange[1]) / 2);
+    currentCreateForm.constraint = Math.floor((template.constraintRange[0] + template.constraintRange[1]) / 2);
+  }
+  updateCreateFormUI();
+});
+
+UI.targetRange.addEventListener('input', (e) => {
+  currentCreateForm.target = parseInt(e.target.value);
+  UI.targetRangeValue.textContent = currentCreateForm.target;
+  updateChallengePreview();
+});
+
+UI.constraintRange.addEventListener('input', (e) => {
+  currentCreateForm.constraint = parseInt(e.target.value);
+  UI.constraintRangeValue.textContent = currentCreateForm.constraint;
+  updateChallengePreview();
+});
+
+UI.challengeTitleInput.addEventListener('input', (e) => {
+  currentCreateForm.title = e.target.value;
+  updateChallengePreview();
+});
+
+UI.customChallengesOverlay.addEventListener('click', (e) => {
+  if (e.target === UI.customChallengesOverlay) {
+    closeCustomChallenges();
+  }
+});
+
+UI.createChallengeOverlay.addEventListener('click', (e) => {
+  if (e.target === UI.createChallengeOverlay) {
+    closeCreateChallenge();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (!UI.customChallengesOverlay.classList.contains('hidden')) {
+      closeCustomChallenges();
+    } else if (!UI.createChallengeOverlay.classList.contains('hidden')) {
+      closeCreateChallenge();
+    }
+  }
+});

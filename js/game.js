@@ -32,6 +32,7 @@ export class Game {
     this.enemySystem = null;
     this.achievementSystem = null;
     this.dailyChallengeSystem = null;
+    this.customChallengeSystem = null;
     this.statsSystem = null;
     this.audioSystem = null;
     this.settingsManager = null;
@@ -264,6 +265,9 @@ export class Game {
     
     if (this.dailyChallengeSystem && !this.isReplayMode) {
       this.dailyChallengeSystem.notify('game_over', this.getLevel());
+    }
+    if (this.customChallengeSystem && !this.isReplayMode) {
+      this.customChallengeSystem.notify('game_over', this.getLevel());
     }
     
     let sessionStats = null;
@@ -515,6 +519,10 @@ export class Game {
             this.dailyChallengeSystem.notify('star_collected', result.value / this.config.star.points);
             this.dailyChallengeSystem.notify('score', this.getScore());
           }
+          if (this.customChallengeSystem) {
+            this.customChallengeSystem.notify('star_collected', result.value / this.config.star.points);
+            this.customChallengeSystem.notify('score', this.getScore());
+          }
           if (this.statsSystem) {
             this.statsSystem.notify('star_collected', result.value / this.config.star.points);
           }
@@ -533,6 +541,9 @@ export class Game {
             if (this.dailyChallengeSystem) {
               this.dailyChallengeSystem.notify('damage_taken', result.value);
             }
+            if (this.customChallengeSystem) {
+              this.customChallengeSystem.notify('damage_taken', result.value);
+            }
             if (this.statsSystem) {
               this.statsSystem.notify('collision', result.value);
             }
@@ -549,8 +560,13 @@ export class Game {
         if (this.onLivesChange) this.onLivesChange(this.player.getLives());
         if (this.audioSystem && this.soundEnabled) this.audioSystem.play('heal');
         
-        if (!this.isTrainingMode && !this.isReplayMode && this.dailyChallengeSystem) {
-          this.dailyChallengeSystem.notify('heal_used', result.value);
+        if (!this.isTrainingMode && !this.isReplayMode) {
+          if (this.dailyChallengeSystem) {
+            this.dailyChallengeSystem.notify('heal_used', result.value);
+          }
+          if (this.customChallengeSystem) {
+            this.customChallengeSystem.notify('heal_used', result.value);
+          }
         }
         break;
     }
@@ -664,6 +680,9 @@ export class Game {
         if (this.dailyChallengeSystem) {
           this.dailyChallengeSystem.notify('level_up', level);
         }
+        if (this.customChallengeSystem) {
+          this.customChallengeSystem.notify('level_up', level);
+        }
         if (this.statsSystem) {
           this.statsSystem.updateSessionLevel(level);
         }
@@ -697,6 +716,13 @@ export class Game {
 
   registerDailyChallengeSystem(system) {
     this.dailyChallengeSystem = system;
+    if (system && system.onRegister) {
+      system.onRegister(this);
+    }
+  }
+
+  registerCustomChallengeSystem(system) {
+    this.customChallengeSystem = system;
     if (system && system.onRegister) {
       system.onRegister(this);
     }

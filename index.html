@@ -56,6 +56,11 @@
           <p class="overlay-desc">收集星星获得分数，躲避红色陨石保护生命</p>
           <p class="overlay-tips">键盘：方向键 或 WASD 移动 | 触屏：使用下方虚拟按键</p>
           
+          <div class="challenge-mode-tabs">
+            <button class="challenge-mode-tab active" data-mode="daily">📅 每日挑战</button>
+            <button class="challenge-mode-tab" data-mode="custom">🎮 自定义挑战</button>
+          </div>
+
           <div class="daily-challenge-card" id="dailyChallengeCard">
             <div class="challenge-card-header">
               <span class="challenge-card-badge">📅 今日挑战</span>
@@ -72,10 +77,105 @@
               <div class="challenge-reward-text">完成可获得今日成就徽章</div>
             </div>
           </div>
+
+          <div class="custom-challenge-card hidden" id="customChallengeCard">
+            <div class="challenge-card-header">
+              <span class="challenge-card-badge">🎮 自定义挑战</span>
+              <span class="challenge-card-status" id="customChallengeCardStatus">未选择</span>
+            </div>
+            <div class="challenge-card-body" id="customChallengeCardBody">
+              <div class="challenge-card-icon">➕</div>
+              <div class="challenge-card-info">
+                <div class="challenge-card-title">暂无选中的挑战</div>
+                <div class="challenge-card-desc">点击下方按钮创建或选择挑战</div>
+              </div>
+            </div>
+            <div class="challenge-card-footer">
+              <button class="btn btn-small btn-secondary" id="manageCustomChallengesBtn">⚙️ 管理挑战</button>
+            </div>
+          </div>
           
           <button class="btn btn-secondary" id="skinsBtnStart">🎨 皮肤收藏</button>
           <button class="btn btn-accent" id="trainingBtn">🎯 训练场</button>
           <button class="btn btn-primary" id="startBtn">开始游戏</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="customChallengesOverlay">
+        <div class="overlay-content">
+          <div class="overlay-header">
+            <h2 class="overlay-title">🎮 自定义挑战</h2>
+            <button class="overlay-close" id="customChallengesCloseBtn">✕</button>
+          </div>
+          <p class="overlay-desc">创建和管理你的专属挑战</p>
+          
+          <div class="custom-challenges-list" id="customChallengesList">
+          </div>
+          
+          <div class="custom-challenges-actions">
+            <button class="btn btn-primary" id="createChallengeBtn">➕ 创建新挑战</button>
+            <button class="btn btn-secondary" id="customChallengesBackBtn">← 返回</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="createChallengeOverlay">
+        <div class="overlay-content">
+          <div class="overlay-header">
+            <h2 class="overlay-title">➕ 创建挑战</h2>
+            <button class="overlay-close" id="createChallengeCloseBtn">✕</button>
+          </div>
+          <p class="overlay-desc">配置你的专属挑战</p>
+          
+          <div class="create-challenge-form">
+            <div class="form-group">
+              <label class="form-label">挑战类型</label>
+              <select class="form-select" id="challengeTypeSelect">
+              </select>
+            </div>
+            
+            <div class="form-group" id="targetGroup">
+              <label class="form-label" id="targetLabel">目标值</label>
+              <input type="range" class="form-range" id="targetRange" min="1" max="100" value="50">
+              <span class="form-range-value" id="targetRangeValue">50</span>
+            </div>
+            
+            <div class="form-group" id="constraintGroup">
+              <label class="form-label" id="constraintLabel">约束值</label>
+              <input type="range" class="form-range" id="constraintRange" min="0" max="10" value="1">
+              <span class="form-range-value" id="constraintRangeValue">1</span>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">图标</label>
+              <div class="icon-selector" id="iconSelector">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">颜色</label>
+              <div class="color-selector" id="colorSelector">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">挑战名称</label>
+              <input type="text" class="form-input" id="challengeTitleInput" placeholder="输入挑战名称">
+            </div>
+          </div>
+          
+          <div class="challenge-preview" id="challengePreview">
+            <div class="challenge-preview-icon" id="challengePreviewIcon">🎯</div>
+            <div class="challenge-preview-info">
+              <div class="challenge-preview-title" id="challengePreviewTitle">挑战预览</div>
+              <div class="challenge-preview-desc" id="challengePreviewDesc">挑战描述</div>
+            </div>
+          </div>
+          
+          <div class="custom-challenges-actions">
+            <button class="btn btn-primary" id="confirmCreateChallengeBtn">✓ 创建挑战</button>
+            <button class="btn btn-secondary" id="cancelCreateChallengeBtn">← 取消</button>
+          </div>
         </div>
       </div>
 

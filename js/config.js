@@ -35,6 +35,9 @@ export const CONFIG = {
     achievementsKey: 'starCollector_achievements',
     settingsKey: 'starCollector_settings',
     dailyChallengesKey: 'starCollector_dailyChallenges',
+    customChallengesKey: 'starCollector_customChallenges',
+    customChallengeProgressKey: 'starCollector_customChallengeProgress',
+    activeChallengeModeKey: 'starCollector_activeChallengeMode',
     statsKey: 'starCollector_stats',
     skinsKey: 'starCollector_skins'
   },
