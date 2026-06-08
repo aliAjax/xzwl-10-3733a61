@@ -69,6 +69,7 @@
     <div class="controls">
       <button class="btn btn-control" id="pauseBtn" disabled>暂停</button>
       <button class="btn btn-control" id="restartBtn2" disabled>重新开始</button>
+      <button class="btn btn-control" id="achievementsBtn">🏆 成就</button>
       <button class="btn btn-control" id="settingsBtn">⚙️ 设置</button>
     </div>
 
@@ -80,6 +81,22 @@
         <button class="touch-btn" data-direction="left">◀</button>
         <button class="touch-btn" data-direction="down">▼</button>
         <button class="touch-btn" data-direction="right">▶</button>
+      </div>
+    </div>
+
+    <div class="achievement-toast-container" id="achievementToastContainer"></div>
+
+    <div class="achievements-overlay hidden" id="achievementsOverlay">
+      <div class="achievements-panel">
+        <div class="achievements-header">
+          <h2 class="achievements-title">🏆 成就列表</h2>
+          <div class="achievements-progress">
+            <span id="achievementsProgress">0 / 4</span>
+          </div>
+          <button class="achievements-close" id="achievementsCloseBtn">✕</button>
+        </div>
+        <div class="achievements-content" id="achievementsContent">
+        </div>
       </div>
     </div>
 

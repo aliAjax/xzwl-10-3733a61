@@ -5,6 +5,7 @@ import { StorageManager } from './storage.js';
 import { ScoreManager } from './score.js';
 import { LevelSystem } from './levels.js';
 import { PowerUpSystem } from './powerups.js';
+import { AchievementSystem } from './achievements.js';
 import { SettingsManager, DEFAULT_SETTINGS } from './settings.js';
 
 const UI = {
@@ -32,13 +33,20 @@ const UI = {
   settingsResetBtn: document.getElementById('settingsResetBtn'),
   soundToggle: document.getElementById('soundToggle'),
   speedBtns: document.querySelectorAll('.speed-btn'),
-  touchModeBtns: document.querySelectorAll('.touch-mode-btn')
+  touchModeBtns: document.querySelectorAll('.touch-mode-btn'),
+  achievementsBtn: document.getElementById('achievementsBtn'),
+  achievementsOverlay: document.getElementById('achievementsOverlay'),
+  achievementsCloseBtn: document.getElementById('achievementsCloseBtn'),
+  achievementsContent: document.getElementById('achievementsContent'),
+  achievementsProgress: document.getElementById('achievementsProgress'),
+  achievementToastContainer: document.getElementById('achievementToastContainer')
 };
 
 const storage = new StorageManager();
 const scoreManager = new ScoreManager(storage);
 const inputManager = new InputManager();
 const settingsManager = new SettingsManager(storage);
+const achievementSystem = new AchievementSystem(storage);
 const levelSystem = new LevelSystem(CONFIG.levels);
 const powerUpSystem = new PowerUpSystem(CONFIG.powerUps);
 const game = new Game(UI.canvas, CONFIG);
@@ -85,6 +93,7 @@ function handleStateChange(state) {
       UI.pauseBtn.disabled = false;
       UI.restartBtn2.disabled = false;
       UI.pauseBtn.textContent = '暂停';
+      achievementSystem.resetGameSession();
       break;
       
     case GAME_STATES.PAUSED:
@@ -105,6 +114,8 @@ function handleGameOver(score, isNewRecord) {
   
   if (isNewRecord) {
     UI.newRecordEl.classList.remove('hidden');
+    achievementSystem.notify('high_score_broken', true);
+    achievementSystem.check(game);
   } else {
     UI.newRecordEl.classList.add('hidden');
   }
@@ -121,6 +132,9 @@ game.onGameOver = handleGameOver;
 
 game.registerLevelSystem(levelSystem);
 game.registerPowerUpSystem(powerUpSystem);
+game.registerAchievementSystem(achievementSystem);
+
+achievementSystem.onUnlock(showAchievementToast);
 
 UI.startBtn.addEventListener('click', () => {
   game.start();
@@ -186,10 +200,63 @@ console.log('   - P / ESC：暂停/继续');
 console.log('   - 空格：开始游戏');
 console.log('💡 扩展接口已就绪，可随时注册关卡、道具、敌人、成就和音效系统');
 
+function showAchievementToast(achievement, unlockData) {
+  const toast = document.createElement('div');
+  toast.className = 'achievement-toast';
+  toast.innerHTML = `
+    <div class="achievement-toast-icon">${achievement.icon}</div>
+    <div class="achievement-toast-content">
+      <div class="achievement-toast-label">成就解锁</div>
+      <div class="achievement-toast-name">${achievement.name}</div>
+      <div class="achievement-toast-desc">${achievement.description}</div>
+    </div>
+  `;
+  
+  UI.achievementToastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+function openAchievements() {
+  renderAchievementsList();
+  UI.achievementsOverlay.classList.remove('hidden');
+  if (game.getState() === GAME_STATES.PLAYING) {
+    game.pause();
+  }
+}
+
+function closeAchievements() {
+  UI.achievementsOverlay.classList.add('hidden');
+}
+
+function renderAchievementsList() {
+  const allAchievements = achievementSystem.getAllAchievements();
+  const unlockedCount = achievementSystem.getUnlockedCount();
+  const totalCount = achievementSystem.getTotalCount();
+  
+  UI.achievementsProgress.textContent = `${unlockedCount} / ${totalCount}`;
+  
+  UI.achievementsContent.innerHTML = allAchievements.map(achievement => `
+    <div class="achievement-item ${achievement.unlocked ? 'unlocked' : ''}">
+      <div class="achievement-item-icon">${achievement.icon}</div>
+      <div class="achievement-item-content">
+        <div class="achievement-item-name">${achievement.name}</div>
+        <div class="achievement-item-desc">${achievement.description}</div>
+      </div>
+      <div class="achievement-item-status ${achievement.unlocked ? 'unlocked' : 'locked'}">
+        ${achievement.unlocked ? '已解锁' : '未解锁'}
+      </div>
+    </div>
+  `).join('');
+}
+
 window.__game = game;
 window.__scoreManager = scoreManager;
 window.__inputManager = inputManager;
 window.__settingsManager = settingsManager;
+window.__achievementSystem = achievementSystem;
 
 function initSettingsUI() {
   const settings = settingsManager.getSettings();
@@ -263,6 +330,15 @@ UI.speedBtns.forEach(btn => btn.addEventListener('click', handleSpeedChange));
 UI.touchModeBtns.forEach(btn => btn.addEventListener('click', handleTouchModeChange));
 UI.settingsResetBtn.addEventListener('click', handleSettingsReset);
 
+UI.achievementsBtn.addEventListener('click', openAchievements);
+UI.achievementsCloseBtn.addEventListener('click', closeAchievements);
+
+UI.achievementsOverlay.addEventListener('click', (e) => {
+  if (e.target === UI.achievementsOverlay) {
+    closeAchievements();
+  }
+});
+
 UI.settingsOverlay.addEventListener('click', (e) => {
   if (e.target === UI.settingsOverlay) {
     closeSettings();
@@ -270,7 +346,11 @@ UI.settingsOverlay.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !UI.settingsOverlay.classList.contains('hidden')) {
-    closeSettings();
+  if (e.key === 'Escape') {
+    if (!UI.settingsOverlay.classList.contains('hidden')) {
+      closeSettings();
+    } else if (!UI.achievementsOverlay.classList.contains('hidden')) {
+      closeAchievements();
+    }
   }
 });
