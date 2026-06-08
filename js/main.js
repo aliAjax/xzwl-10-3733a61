@@ -3,12 +3,14 @@ import { Game } from './game.js';
 import { InputManager } from './input.js';
 import { StorageManager } from './storage.js';
 import { ScoreManager } from './score.js';
+import { LevelSystem } from './levels.js';
 
 const UI = {
   canvas: document.getElementById('gameCanvas'),
   scoreEl: document.getElementById('score'),
   highScoreEl: document.getElementById('highScore'),
   livesEl: document.getElementById('lives'),
+  levelEl: document.getElementById('level'),
   startOverlay: document.getElementById('startOverlay'),
   pauseOverlay: document.getElementById('pauseOverlay'),
   gameOverOverlay: document.getElementById('gameOverOverlay'),
@@ -26,9 +28,11 @@ const UI = {
 const storage = new StorageManager();
 const scoreManager = new ScoreManager(storage);
 const inputManager = new InputManager();
+const levelSystem = new LevelSystem(CONFIG.levels);
 const game = new Game(UI.canvas, CONFIG);
 
 game.init(scoreManager, inputManager);
+game.registerLevelSystem(levelSystem);
 
 function updateScoreUI(score) {
   UI.scoreEl.textContent = score;
@@ -42,6 +46,10 @@ function updateLivesUI(lives) {
 
 function updateHighScoreUI() {
   UI.highScoreEl.textContent = scoreManager.getHighScore();
+}
+
+function updateLevelUI(level) {
+  UI.levelEl.textContent = level;
 }
 
 function hideAllOverlays() {
@@ -95,6 +103,7 @@ function handleGameOver(score, isNewRecord) {
 game.onStateChange = handleStateChange;
 game.onScoreChange = updateScoreUI;
 game.onLivesChange = updateLivesUI;
+game.onLevelChange = updateLevelUI;
 game.onGameOver = handleGameOver;
 
 UI.startBtn.addEventListener('click', () => {
@@ -142,6 +151,7 @@ window.addEventListener('resize', resizeCanvas);
 updateHighScoreUI();
 updateScoreUI(0);
 updateLivesUI(CONFIG.game.initialLives);
+updateLevelUI(game.getLevel());
 resizeCanvas();
 game.renderIdle();
 

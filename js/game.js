@@ -34,6 +34,7 @@ export class Game {
     this.onStateChange = null;
     this.onScoreChange = null;
     this.onLivesChange = null;
+    this.onLevelChange = null;
     this.onGameOver = null;
     
     this.initBackgroundStars();
@@ -128,6 +129,8 @@ export class Game {
     this.starSpawnTimer = 0;
     this.obstacleSpawnTimer = 0;
     this.scoreManager.reset();
+    
+    if (this.levelSystem) this.levelSystem.reset();
     
     this.player.reset(
       this.width / 2,
@@ -251,7 +254,12 @@ export class Game {
     const x = padding + Math.random() * (this.width - padding * 2);
     const y = padding + Math.random() * (this.height - padding * 2);
     
-    const obstacle = new Obstacle(x, y, this.config.obstacle, this.bounds);
+    const obstacleConfig = { ...this.config.obstacle };
+    if (this.levelSystem) {
+      obstacleConfig.speed = this.levelSystem.getObstacleSpeed();
+    }
+    
+    const obstacle = new Obstacle(x, y, obstacleConfig, this.bounds);
     
     if (this.enemySystem) {
       this.enemySystem.modifyEntity(obstacle);
@@ -388,10 +396,21 @@ export class Game {
     return this.player ? this.player.getLives() : 0;
   }
 
+  getLevel() {
+    return this.levelSystem ? this.levelSystem.getLevel() : 1;
+  }
+
   registerLevelSystem(system) {
     this.levelSystem = system;
     if (system && system.onRegister) {
       system.onRegister(this);
+    }
+    if (system) {
+      system.onLevelChange = (level) => {
+        if (this.onLevelChange) {
+          this.onLevelChange(level);
+        }
+      };
     }
   }
 

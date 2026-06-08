@@ -138,6 +138,11 @@ body::before {
   text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
 }
 
+.status-item.level .status-value {
+  color: var(--accent-green);
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
 .canvas-wrapper {
   position: relative;
   width: 100%;
