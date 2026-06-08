@@ -33,7 +33,8 @@ export const CONFIG = {
   storage: {
     highScoreKey: 'starCollector_highScore',
     achievementsKey: 'starCollector_achievements',
-    settingsKey: 'starCollector_settings'
+    settingsKey: 'starCollector_settings',
+    dailyChallengesKey: 'starCollector_dailyChallenges'
   },
   levels: [
     { threshold: 0, starInterval: 1500, maxStars: 5, maxObstacles: 3, obstacleSpeed: 2 },

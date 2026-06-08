@@ -29,6 +29,7 @@ export class Game {
     this.powerUpSystem = null;
     this.enemySystem = null;
     this.achievementSystem = null;
+    this.dailyChallengeSystem = null;
     this.audioSystem = null;
     this.settingsManager = null;
     
@@ -160,6 +161,10 @@ export class Game {
     }
     
     const isNewRecord = this.scoreManager.saveHighScore();
+    
+    if (this.dailyChallengeSystem) {
+      this.dailyChallengeSystem.notify('game_over', this.getLevel());
+    }
     
     if (this.onStateChange) this.onStateChange(this.state);
     if (this.onGameOver) this.onGameOver(this.scoreManager.getScore(), isNewRecord);
@@ -312,6 +317,10 @@ export class Game {
         if (this.achievementSystem) {
           this.achievementSystem.notify('star_collected', result.value);
         }
+        if (this.dailyChallengeSystem) {
+          this.dailyChallengeSystem.notify('star_collected', result.value / this.config.star.points);
+          this.dailyChallengeSystem.notify('score', this.getScore());
+        }
         break;
         
       case 'damage':
@@ -320,6 +329,9 @@ export class Game {
           if (this.audioSystem && this.soundEnabled) this.audioSystem.play('hit');
           if (this.achievementSystem) {
             this.achievementSystem.notify('damage_taken', result.value);
+          }
+          if (this.dailyChallengeSystem) {
+            this.dailyChallengeSystem.notify('damage_taken', result.value);
           }
           
           if (this.player.getLives() <= 0) {
@@ -332,6 +344,9 @@ export class Game {
         this.player.heal(result.value);
         if (this.onLivesChange) this.onLivesChange(this.player.getLives());
         if (this.audioSystem && this.soundEnabled) this.audioSystem.play('heal');
+        if (this.dailyChallengeSystem) {
+          this.dailyChallengeSystem.notify('heal_used', result.value);
+        }
         break;
     }
   }
@@ -418,6 +433,9 @@ export class Game {
         if (this.onLevelChange) {
           this.onLevelChange(level);
         }
+        if (this.dailyChallengeSystem) {
+          this.dailyChallengeSystem.notify('level_up', level);
+        }
       };
       if (system.onRegister) {
         system.onRegister(this);
@@ -441,6 +459,13 @@ export class Game {
 
   registerAchievementSystem(system) {
     this.achievementSystem = system;
+    if (system && system.onRegister) {
+      system.onRegister(this);
+    }
+  }
+
+  registerDailyChallengeSystem(system) {
+    this.dailyChallengeSystem = system;
     if (system && system.onRegister) {
       system.onRegister(this);
     }

@@ -34,6 +34,19 @@
       </div>
     </div>
 
+    <div class="challenge-progress-bar hidden" id="challengeProgressBar">
+      <div class="challenge-progress-icon" id="challengeProgressIcon">🎯</div>
+      <div class="challenge-progress-content">
+        <div class="challenge-progress-text">
+          <span id="challengeProgressLabel">挑战</span>
+          <span id="challengeProgressValue">0 / 0</span>
+        </div>
+        <div class="challenge-progress-track">
+          <div class="challenge-progress-fill" id="challengeProgressFill"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="canvas-wrapper">
       <canvas id="gameCanvas" width="800" height="600"></canvas>
       
@@ -42,6 +55,24 @@
           <h2 class="overlay-title">🌟 准备好了吗？</h2>
           <p class="overlay-desc">收集星星获得分数，躲避红色陨石保护生命</p>
           <p class="overlay-tips">键盘：方向键 或 WASD 移动 | 触屏：使用下方虚拟按键</p>
+          
+          <div class="daily-challenge-card" id="dailyChallengeCard">
+            <div class="challenge-card-header">
+              <span class="challenge-card-badge">📅 今日挑战</span>
+              <span class="challenge-card-status" id="challengeCardStatus">进行中</span>
+            </div>
+            <div class="challenge-card-body">
+              <div class="challenge-card-icon" id="challengeCardIcon">🎯</div>
+              <div class="challenge-card-info">
+                <div class="challenge-card-title" id="challengeCardTitle">加载中...</div>
+                <div class="challenge-card-desc" id="challengeCardDesc">请稍候...</div>
+              </div>
+            </div>
+            <div class="challenge-card-footer">
+              <div class="challenge-reward-text">完成可获得今日成就徽章</div>
+            </div>
+          </div>
+          
           <button class="btn btn-primary" id="startBtn">开始游戏</button>
         </div>
       </div>
@@ -61,6 +92,25 @@
           <p class="final-score">最终得分：<span id="finalScore">0</span></p>
           <p class="high-score-text">最高分：<span id="finalHighScore">0</span></p>
           <p class="new-record hidden" id="newRecord">🎉 新纪录！</p>
+          
+          <div class="challenge-result-card" id="challengeResultCard">
+            <div class="challenge-result-header">
+              <span class="challenge-result-icon" id="challengeResultIcon">🎯</span>
+              <span class="challenge-result-title">今日挑战</span>
+            </div>
+            <div class="challenge-result-body">
+              <div class="challenge-result-name" id="challengeResultName">--</div>
+              <div class="challenge-result-desc" id="challengeResultDesc">--</div>
+              <div class="challenge-result-status" id="challengeResultStatus">--</div>
+              <div class="challenge-result-progress">
+                <div class="challenge-result-progress-track">
+                  <div class="challenge-result-progress-fill" id="challengeResultProgressFill"></div>
+                </div>
+                <div class="challenge-result-progress-text" id="challengeResultProgressText">0%</div>
+              </div>
+            </div>
+          </div>
+          
           <button class="btn btn-primary" id="restartBtn">再来一局</button>
         </div>
       </div>

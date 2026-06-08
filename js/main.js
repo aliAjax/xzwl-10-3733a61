@@ -7,6 +7,7 @@ import { LevelSystem } from './levels.js';
 import { PowerUpSystem } from './powerups.js';
 import { AchievementSystem } from './achievements.js';
 import { SettingsManager, DEFAULT_SETTINGS } from './settings.js';
+import { DailyChallengeSystem } from './dailyChallenge.js';
 
 const UI = {
   canvas: document.getElementById('gameCanvas'),
@@ -39,7 +40,24 @@ const UI = {
   achievementsCloseBtn: document.getElementById('achievementsCloseBtn'),
   achievementsContent: document.getElementById('achievementsContent'),
   achievementsProgress: document.getElementById('achievementsProgress'),
-  achievementToastContainer: document.getElementById('achievementToastContainer')
+  achievementToastContainer: document.getElementById('achievementToastContainer'),
+  dailyChallengeCard: document.getElementById('dailyChallengeCard'),
+  challengeCardIcon: document.getElementById('challengeCardIcon'),
+  challengeCardTitle: document.getElementById('challengeCardTitle'),
+  challengeCardDesc: document.getElementById('challengeCardDesc'),
+  challengeCardStatus: document.getElementById('challengeCardStatus'),
+  challengeProgressBar: document.getElementById('challengeProgressBar'),
+  challengeProgressIcon: document.getElementById('challengeProgressIcon'),
+  challengeProgressLabel: document.getElementById('challengeProgressLabel'),
+  challengeProgressValue: document.getElementById('challengeProgressValue'),
+  challengeProgressFill: document.getElementById('challengeProgressFill'),
+  challengeResultCard: document.getElementById('challengeResultCard'),
+  challengeResultIcon: document.getElementById('challengeResultIcon'),
+  challengeResultName: document.getElementById('challengeResultName'),
+  challengeResultDesc: document.getElementById('challengeResultDesc'),
+  challengeResultStatus: document.getElementById('challengeResultStatus'),
+  challengeResultProgressFill: document.getElementById('challengeResultProgressFill'),
+  challengeResultProgressText: document.getElementById('challengeResultProgressText')
 };
 
 const storage = new StorageManager();
@@ -47,6 +65,7 @@ const scoreManager = new ScoreManager(storage);
 const inputManager = new InputManager();
 const settingsManager = new SettingsManager(storage);
 const achievementSystem = new AchievementSystem(storage);
+const dailyChallengeSystem = new DailyChallengeSystem(storage);
 const levelSystem = new LevelSystem(CONFIG.levels);
 const powerUpSystem = new PowerUpSystem(CONFIG.powerUps);
 const game = new Game(UI.canvas, CONFIG);
@@ -57,6 +76,9 @@ game.registerSettingsManager(settingsManager);
 
 function updateScoreUI(score) {
   UI.scoreEl.textContent = score;
+  if (game.getState() === GAME_STATES.PLAYING) {
+    updateChallengeProgress();
+  }
 }
 
 function updateLivesUI(lives) {
@@ -79,6 +101,93 @@ function hideAllOverlays() {
   UI.gameOverOverlay.classList.add('hidden');
 }
 
+function updateDailyChallengeCard() {
+  const challenge = dailyChallengeSystem.getTodayChallenge();
+  const isCompleted = dailyChallengeSystem.isTodayCompleted();
+
+  UI.challengeCardIcon.textContent = challenge.icon;
+  UI.challengeCardTitle.textContent = challenge.title;
+  UI.challengeCardDesc.textContent = challenge.description;
+
+  if (isCompleted) {
+    UI.dailyChallengeCard.classList.add('completed');
+    UI.challengeCardStatus.textContent = '✓ 已完成';
+    UI.challengeCardStatus.classList.add('completed');
+  } else {
+    UI.dailyChallengeCard.classList.remove('completed');
+    UI.challengeCardStatus.textContent = '进行中';
+    UI.challengeCardStatus.classList.remove('completed');
+  }
+}
+
+function showChallengeProgress() {
+  const challenge = dailyChallengeSystem.getTodayChallenge();
+  UI.challengeProgressIcon.textContent = challenge.icon;
+  UI.challengeProgressLabel.textContent = challenge.title;
+  UI.challengeProgressBar.classList.remove('hidden');
+  UI.challengeProgressBar.classList.remove('completed');
+  UI.challengeProgressBar.classList.remove('failed');
+  updateChallengeProgress();
+}
+
+function hideChallengeProgress() {
+  UI.challengeProgressBar.classList.add('hidden');
+}
+
+function updateChallengeProgress() {
+  const display = dailyChallengeSystem.getProgressDisplay();
+  const result = dailyChallengeSystem.getSessionResult();
+
+  if (display) {
+    UI.challengeProgressValue.textContent = `${display.value} / ${display.total}`;
+    const progress = result ? result.progress : 0;
+    UI.challengeProgressFill.style.width = `${progress}%`;
+  }
+
+  if (result) {
+    UI.challengeProgressBar.classList.toggle('completed', result.completed);
+    UI.challengeProgressBar.classList.toggle('failed', result.failed && !result.completed);
+  }
+}
+
+function updateChallengeResult() {
+  const result = dailyChallengeSystem.getSessionResult();
+  if (!result) return;
+
+  const { challenge, completed, failed, progress, alreadyCompletedToday, failedReason } = result;
+
+  UI.challengeResultIcon.textContent = challenge.icon;
+  UI.challengeResultName.textContent = challenge.title;
+  UI.challengeResultDesc.textContent = challenge.description;
+
+  UI.challengeResultStatus.classList.remove('success', 'failed', 'already');
+  UI.challengeResultProgressFill.classList.remove('success', 'failed');
+
+  if (alreadyCompletedToday && !completed) {
+    UI.challengeResultStatus.textContent = '今日挑战已完成 ✓';
+    UI.challengeResultStatus.classList.add('already');
+  } else if (completed) {
+    UI.challengeResultStatus.textContent = '🎉 挑战完成！';
+    UI.challengeResultStatus.classList.add('success');
+  } else if (failed) {
+    UI.challengeResultStatus.textContent = failedReason || '挑战未完成';
+    UI.challengeResultStatus.classList.add('failed');
+  } else {
+    UI.challengeResultStatus.textContent = '挑战未完成';
+    UI.challengeResultStatus.classList.add('failed');
+  }
+
+  const progressPercent = Math.round(progress);
+  UI.challengeResultProgressFill.style.width = `${progressPercent}%`;
+  UI.challengeResultProgressText.textContent = `${progressPercent}%`;
+
+  if (completed) {
+    UI.challengeResultProgressFill.classList.add('success');
+  } else if (failed) {
+    UI.challengeResultProgressFill.classList.add('failed');
+  }
+}
+
 let previousState = GAME_STATES.IDLE;
 
 function handleStateChange(state) {
@@ -89,6 +198,8 @@ function handleStateChange(state) {
       UI.startOverlay.classList.remove('hidden');
       UI.pauseBtn.disabled = true;
       UI.restartBtn2.disabled = true;
+      updateDailyChallengeCard();
+      hideChallengeProgress();
       break;
       
     case GAME_STATES.PLAYING:
@@ -97,7 +208,9 @@ function handleStateChange(state) {
       UI.pauseBtn.textContent = '暂停';
       if (previousState === GAME_STATES.IDLE || previousState === GAME_STATES.GAME_OVER) {
         achievementSystem.resetGameSession();
+        dailyChallengeSystem.resetSessionProgress();
       }
+      showChallengeProgress();
       break;
       
     case GAME_STATES.PAUSED:
@@ -108,6 +221,7 @@ function handleStateChange(state) {
     case GAME_STATES.GAME_OVER:
       UI.pauseBtn.disabled = true;
       UI.pauseBtn.textContent = '暂停';
+      hideChallengeProgress();
       break;
   }
 
@@ -127,6 +241,7 @@ function handleGameOver(score, isNewRecord) {
   }
   
   updateHighScoreUI();
+  updateChallengeResult();
   UI.gameOverOverlay.classList.remove('hidden');
 }
 
@@ -139,8 +254,34 @@ game.onGameOver = handleGameOver;
 game.registerLevelSystem(levelSystem);
 game.registerPowerUpSystem(powerUpSystem);
 game.registerAchievementSystem(achievementSystem);
+game.registerDailyChallengeSystem(dailyChallengeSystem);
 
 achievementSystem.onUnlock(showAchievementToast);
+
+dailyChallengeSystem.onCompletion((challenge) => {
+  showChallengeCompletionToast(challenge);
+  updateDailyChallengeCard();
+  updateChallengeProgress();
+});
+
+function showChallengeCompletionToast(challenge) {
+  const toast = document.createElement('div');
+  toast.className = 'achievement-toast';
+  toast.innerHTML = `
+    <div class="achievement-toast-icon">${challenge.icon}</div>
+    <div class="achievement-toast-content">
+      <div class="achievement-toast-label" style="color: var(--accent-green);">每日挑战完成</div>
+      <div class="achievement-toast-name">${challenge.title}</div>
+      <div class="achievement-toast-desc">${challenge.description}</div>
+    </div>
+  `;
+  
+  UI.achievementToastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 4000);
+}
 
 UI.startBtn.addEventListener('click', () => {
   game.start();
@@ -188,13 +329,25 @@ updateHighScoreUI();
 updateScoreUI(0);
 updateLivesUI(CONFIG.game.initialLives);
 updateLevelUI(game.getLevel());
+updateDailyChallengeCard();
 resizeCanvas();
 game.renderIdle();
 
+let lastChallengeCheck = 0;
+
 function idleLoop() {
+  const now = Date.now();
+  
   if (game.getState() === GAME_STATES.IDLE || game.getState() === GAME_STATES.GAME_OVER) {
     game.renderIdle();
   }
+  
+  if (game.getState() === GAME_STATES.PLAYING && now - lastChallengeCheck > 500) {
+    dailyChallengeSystem.checkCompletion();
+    updateChallengeProgress();
+    lastChallengeCheck = now;
+  }
+  
   requestAnimationFrame(idleLoop);
 }
 idleLoop();
@@ -263,6 +416,7 @@ window.__scoreManager = scoreManager;
 window.__inputManager = inputManager;
 window.__settingsManager = settingsManager;
 window.__achievementSystem = achievementSystem;
+window.__dailyChallengeSystem = dailyChallengeSystem;
 
 function initSettingsUI() {
   const settings = settingsManager.getSettings();
