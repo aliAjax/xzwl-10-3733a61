@@ -135,6 +135,7 @@ export class Game {
     this.scoreManager.reset();
     
     if (this.levelSystem) this.levelSystem.reset();
+    if (this.powerUpSystem) this.powerUpSystem.reset();
     
     this.player.reset(
       this.width / 2,
@@ -276,6 +277,8 @@ export class Game {
     
     for (const entity of this.entities) {
       if (!entity.active) continue;
+      if (entity.type === 'powerup') continue;
+      if (entity.type === 'enemy') continue;
       
       const entityBounds = entity.getBounds();
       if (CollisionDetector.checkCircle(playerBounds, entityBounds)) {

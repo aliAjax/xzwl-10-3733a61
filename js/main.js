@@ -4,6 +4,7 @@ import { InputManager } from './input.js';
 import { StorageManager } from './storage.js';
 import { ScoreManager } from './score.js';
 import { LevelSystem } from './levels.js';
+import { PowerUpSystem } from './powerups.js';
 
 const UI = {
   canvas: document.getElementById('gameCanvas'),
@@ -29,6 +30,7 @@ const storage = new StorageManager();
 const scoreManager = new ScoreManager(storage);
 const inputManager = new InputManager();
 const levelSystem = new LevelSystem(CONFIG.levels);
+const powerUpSystem = new PowerUpSystem(CONFIG.powerUps);
 const game = new Game(UI.canvas, CONFIG);
 
 game.init(scoreManager, inputManager);
@@ -106,6 +108,7 @@ game.onLevelChange = updateLevelUI;
 game.onGameOver = handleGameOver;
 
 game.registerLevelSystem(levelSystem);
+game.registerPowerUpSystem(powerUpSystem);
 
 UI.startBtn.addEventListener('click', () => {
   game.start();

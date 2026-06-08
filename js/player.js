@@ -7,17 +7,20 @@ export class Player {
     this.y = y;
     this.config = config;
     this.size = config.size;
+    this.baseSpeed = config.speed;
     this.speed = config.speed;
+    this.speedMultiplier = 1;
     this.bounds = bounds;
     this.lives = 3;
     this.invincible = false;
     this.invincibleTimer = 0;
+    this.shield = false;
     this.trail = [];
     this.hitFlash = 0;
   }
 
   move(dx, dy, deltaTime) {
-    const moveSpeed = this.speed;
+    const moveSpeed = this.speed * this.speedMultiplier;
     this.x += dx * moveSpeed;
     this.y += dy * moveSpeed;
 
@@ -107,6 +110,7 @@ export class Player {
   }
 
   takeDamage(amount) {
+    if (this.shield) return false;
     if (this.invincible) return false;
     
     this.lives -= amount;
@@ -119,6 +123,14 @@ export class Player {
 
   heal(amount) {
     this.lives = Math.min(this.lives + amount, 5);
+  }
+
+  setShield(active) {
+    this.shield = active;
+  }
+
+  setSpeedMultiplier(multiplier) {
+    this.speedMultiplier = multiplier;
   }
 
   getLives() {
@@ -135,6 +147,8 @@ export class Player {
     this.lives = 3;
     this.invincible = false;
     this.invincibleTimer = 0;
+    this.shield = false;
+    this.speedMultiplier = 1;
     this.trail = [];
     this.hitFlash = 0;
   }

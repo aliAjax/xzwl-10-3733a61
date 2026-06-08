@@ -45,7 +45,39 @@ export const CONFIG = {
     { threshold: 1700, starInterval: 600, maxStars: 11, maxObstacles: 9, obstacleSpeed: 5 },
     { threshold: 2300, starInterval: 500, maxStars: 12, maxObstacles: 10, obstacleSpeed: 5.5 }
   ],
-  powerUps: [],
+  powerUps: {
+    spawnInterval: 5000,
+    maxCount: 2,
+    lifetime: 8000,
+    types: {
+      shield: {
+        name: '护盾',
+        size: 22,
+        duration: 5000,
+        color: '#22c55e',
+        glowColor: 'rgba(34, 197, 94, 0.6)',
+        symbol: '🛡️'
+      },
+      speed: {
+        name: '加速',
+        size: 20,
+        duration: 6000,
+        color: '#3b82f6',
+        glowColor: 'rgba(59, 130, 246, 0.6)',
+        multiplier: 1.8,
+        symbol: '⚡'
+      },
+      heal: {
+        name: '回血',
+        size: 20,
+        duration: 0,
+        healAmount: 1,
+        color: '#ec4899',
+        glowColor: 'rgba(236, 72, 153, 0.6)',
+        symbol: '❤️'
+      }
+    }
+  },
   achievements: []
 };
 
