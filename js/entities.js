@@ -192,7 +192,7 @@ export class PowerUp extends Entity {
     this.pulsePhase += 0.08;
     this.floatPhase += 0.03;
     this.lifetime -= deltaTime;
-    
+
     if (this.lifetime <= 0) {
       this.deactivate();
     }
@@ -202,47 +202,47 @@ export class PowerUp extends Entity {
     const pulse = 1 + Math.sin(this.pulsePhase) * 0.15;
     const float = Math.sin(this.floatPhase) * 3;
     const size = this.size * pulse;
-    
+
     const alpha = this.lifetime < 2000 ? this.lifetime / 2000 : 1;
-    
+
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y + float);
     ctx.rotate(this.rotation);
-    
+
     ctx.shadowBlur = 25;
     ctx.shadowColor = this.config.glowColor;
-    
+
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size / 2);
     gradient.addColorStop(0, '#ffffff');
     gradient.addColorStop(0.3, this.config.color);
     gradient.addColorStop(1, this.config.color);
-    
+
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
     ctx.fill();
-    
+
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, size / 2 + 2, 0, Math.PI * 2);
     ctx.stroke();
-    
+
     ctx.shadowBlur = 0;
     ctx.font = `${size * 0.6}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(this.config.symbol, 0, 0);
-    
+
     ctx.restore();
   }
 
   onCollide(target) {
     if (target.type === 'player') {
       this.deactivate();
-      return { 
-        type: 'powerup', 
+      return {
+        type: 'powerup',
         powerUpType: this.powerUpType,
         config: this.config
       };
