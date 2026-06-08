@@ -120,6 +120,7 @@
       <button class="btn btn-control" id="pauseBtn" disabled>暂停</button>
       <button class="btn btn-control" id="restartBtn2" disabled>重新开始</button>
       <button class="btn btn-control" id="achievementsBtn">🏆 成就</button>
+      <button class="btn btn-control" id="statsBtn">📊 统计</button>
       <button class="btn btn-control" id="settingsBtn">⚙️ 设置</button>
     </div>
 
@@ -194,6 +195,17 @@
         </div>
         <div class="settings-footer">
           <button class="btn btn-secondary" id="settingsResetBtn">恢复默认</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-overlay hidden" id="statsOverlay">
+      <div class="stats-panel">
+        <div class="stats-header">
+          <h2 class="stats-title">📊 游戏统计</h2>
+          <button class="stats-close" id="statsCloseBtn">✕</button>
+        </div>
+        <div class="stats-content" id="statsContent">
         </div>
       </div>
     </div>

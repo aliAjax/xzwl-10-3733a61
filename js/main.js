@@ -8,6 +8,7 @@ import { PowerUpSystem } from './powerups.js';
 import { AchievementSystem } from './achievements.js';
 import { SettingsManager, DEFAULT_SETTINGS } from './settings.js';
 import { DailyChallengeSystem } from './dailyChallenge.js';
+import { StatsSystem } from './stats.js';
 
 const UI = {
   canvas: document.getElementById('gameCanvas'),
@@ -57,7 +58,11 @@ const UI = {
   challengeResultDesc: document.getElementById('challengeResultDesc'),
   challengeResultStatus: document.getElementById('challengeResultStatus'),
   challengeResultProgressFill: document.getElementById('challengeResultProgressFill'),
-  challengeResultProgressText: document.getElementById('challengeResultProgressText')
+  challengeResultProgressText: document.getElementById('challengeResultProgressText'),
+  statsBtn: document.getElementById('statsBtn'),
+  statsOverlay: document.getElementById('statsOverlay'),
+  statsCloseBtn: document.getElementById('statsCloseBtn'),
+  statsContent: document.getElementById('statsContent')
 };
 
 const storage = new StorageManager();
@@ -66,6 +71,7 @@ const inputManager = new InputManager();
 const settingsManager = new SettingsManager(storage);
 const achievementSystem = new AchievementSystem(storage);
 const dailyChallengeSystem = new DailyChallengeSystem(storage);
+const statsSystem = new StatsSystem(storage);
 const levelSystem = new LevelSystem(CONFIG.levels);
 const powerUpSystem = new PowerUpSystem(CONFIG.powerUps);
 const game = new Game(UI.canvas, CONFIG);
@@ -231,7 +237,7 @@ function handleStateChange(state) {
   previousState = state;
 }
 
-function handleGameOver(score, isNewRecord) {
+function handleGameOver(score, isNewRecord, sessionStats) {
   UI.finalScoreEl.textContent = score;
   UI.finalHighScoreEl.textContent = scoreManager.getHighScore();
   
@@ -258,6 +264,7 @@ game.registerLevelSystem(levelSystem);
 game.registerPowerUpSystem(powerUpSystem);
 game.registerAchievementSystem(achievementSystem);
 game.registerDailyChallengeSystem(dailyChallengeSystem);
+game.registerStatsSystem(statsSystem);
 
 achievementSystem.onUnlock(showAchievementToast);
 
@@ -420,6 +427,7 @@ window.__inputManager = inputManager;
 window.__settingsManager = settingsManager;
 window.__achievementSystem = achievementSystem;
 window.__dailyChallengeSystem = dailyChallengeSystem;
+window.__statsSystem = statsSystem;
 
 function initSettingsUI() {
   const settings = settingsManager.getSettings();
@@ -446,6 +454,41 @@ function openSettings() {
 
 function closeSettings() {
   UI.settingsOverlay.classList.add('hidden');
+}
+
+function openStats() {
+  renderStatsPanel();
+  UI.statsOverlay.classList.remove('hidden');
+  if (game.getState() === GAME_STATES.PLAYING) {
+    game.pause();
+  }
+}
+
+function closeStats() {
+  UI.statsOverlay.classList.add('hidden');
+}
+
+function renderStatsPanel() {
+  const stats = statsSystem.getStats();
+  
+  const statItems = [
+    { icon: '🎮', label: '累计游戏次数', value: stats.totalGames, class: '' },
+    { icon: '⭐', label: '累计收集星星数', value: stats.totalStars, class: 'highlight' },
+    { icon: '💥', label: '累计碰撞次数', value: stats.totalCollisions, class: 'collision' },
+    { icon: '🏆', label: '最高等级', value: stats.highestLevel, class: 'level' },
+    { icon: '🎁', label: '道具拾取次数', value: stats.totalPowerUps, class: '' },
+    { icon: '⏱️', label: '最长单局存活时间', value: statsSystem.formatSurvivalTime(stats.longestSurvivalTime), class: 'highlight' }
+  ];
+  
+  UI.statsContent.innerHTML = statItems.map(item => `
+    <div class="stat-item ${item.class}">
+      <div class="stat-item-icon">${item.icon}</div>
+      <div class="stat-item-content">
+        <div class="stat-item-label">${item.label}</div>
+        <div class="stat-item-value">${item.value}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function handleSoundToggle() {
@@ -496,6 +539,9 @@ UI.settingsResetBtn.addEventListener('click', handleSettingsReset);
 UI.achievementsBtn.addEventListener('click', openAchievements);
 UI.achievementsCloseBtn.addEventListener('click', closeAchievements);
 
+UI.statsBtn.addEventListener('click', openStats);
+UI.statsCloseBtn.addEventListener('click', closeStats);
+
 UI.achievementsOverlay.addEventListener('click', (e) => {
   if (e.target === UI.achievementsOverlay) {
     closeAchievements();
@@ -508,12 +554,20 @@ UI.settingsOverlay.addEventListener('click', (e) => {
   }
 });
 
+UI.statsOverlay.addEventListener('click', (e) => {
+  if (e.target === UI.statsOverlay) {
+    closeStats();
+  }
+});
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (!UI.settingsOverlay.classList.contains('hidden')) {
       closeSettings();
     } else if (!UI.achievementsOverlay.classList.contains('hidden')) {
       closeAchievements();
+    } else if (!UI.statsOverlay.classList.contains('hidden')) {
+      closeStats();
     }
   }
 });

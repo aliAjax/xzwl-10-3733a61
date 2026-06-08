@@ -30,6 +30,7 @@ export class Game {
     this.enemySystem = null;
     this.achievementSystem = null;
     this.dailyChallengeSystem = null;
+    this.statsSystem = null;
     this.audioSystem = null;
     this.settingsManager = null;
     
@@ -93,6 +94,10 @@ export class Game {
     this.reset();
     this.state = GAME_STATES.PLAYING;
     this.lastTime = performance.now();
+    
+    if (this.statsSystem) {
+      this.statsSystem.startNewSession();
+    }
     
     if (this.onStateChange) this.onStateChange(this.state);
     if (this.audioSystem && this.soundEnabled) this.audioSystem.play('start');
@@ -166,8 +171,13 @@ export class Game {
       this.dailyChallengeSystem.notify('game_over', this.getLevel());
     }
     
+    let sessionStats = null;
+    if (this.statsSystem) {
+      sessionStats = this.statsSystem.endSession();
+    }
+    
     if (this.onStateChange) this.onStateChange(this.state);
-    if (this.onGameOver) this.onGameOver(this.scoreManager.getScore(), isNewRecord);
+    if (this.onGameOver) this.onGameOver(this.scoreManager.getScore(), isNewRecord, sessionStats);
     if (this.audioSystem && this.soundEnabled) this.audioSystem.play('gameover');
   }
 
@@ -321,6 +331,9 @@ export class Game {
           this.dailyChallengeSystem.notify('star_collected', result.value / this.config.star.points);
           this.dailyChallengeSystem.notify('score', this.getScore());
         }
+        if (this.statsSystem) {
+          this.statsSystem.notify('star_collected', result.value / this.config.star.points);
+        }
         break;
         
       case 'damage':
@@ -332,6 +345,9 @@ export class Game {
           }
           if (this.dailyChallengeSystem) {
             this.dailyChallengeSystem.notify('damage_taken', result.value);
+          }
+          if (this.statsSystem) {
+            this.statsSystem.notify('collision', result.value);
           }
           
           if (this.player.getLives() <= 0) {
@@ -436,6 +452,9 @@ export class Game {
         if (this.dailyChallengeSystem) {
           this.dailyChallengeSystem.notify('level_up', level);
         }
+        if (this.statsSystem) {
+          this.statsSystem.updateSessionLevel(level);
+        }
       };
       if (system.onRegister) {
         system.onRegister(this);
@@ -466,6 +485,13 @@ export class Game {
 
   registerDailyChallengeSystem(system) {
     this.dailyChallengeSystem = system;
+    if (system && system.onRegister) {
+      system.onRegister(this);
+    }
+  }
+
+  registerStatsSystem(system) {
+    this.statsSystem = system;
     if (system && system.onRegister) {
       system.onRegister(this);
     }
