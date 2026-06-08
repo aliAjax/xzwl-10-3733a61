@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>星星收集者 - Star Collector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="game-container">
+    <header class="game-header">
+      <h1 class="game-title">✨ 星星收集者 ✨</h1>
+    </header>
+
+    <div class="status-bar">
+      <div class="status-item lives">
+        <span class="status-label">生命</span>
+        <span class="status-value" id="lives">❤️❤️❤️</span>
+      </div>
+      <div class="status-item score">
+        <span class="status-label">分数</span>
+        <span class="status-value" id="score">0</span>
+      </div>
+      <div class="status-item high-score">
+        <span class="status-label">最高分</span>
+        <span class="status-value" id="highScore">0</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      
+      <div class="overlay" id="startOverlay">
+        <div class="overlay-content">
+          <h2 class="overlay-title">🌟 准备好了吗？</h2>
+          <p class="overlay-desc">收集星星获得分数，躲避红色陨石保护生命</p>
+          <p class="overlay-tips">键盘：方向键 或 WASD 移动 | 触屏：使用下方虚拟按键</p>
+          <button class="btn btn-primary" id="startBtn">开始游戏</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="pauseOverlay">
+        <div class="overlay-content">
+          <h2 class="overlay-title">⏸️ 游戏暂停</h2>
+          <p class="overlay-desc">休息一下，准备好了再继续</p>
+          <button class="btn btn-primary" id="resumeBtn">继续游戏</button>
+          <button class="btn btn-secondary" id="restartFromPauseBtn">重新开始</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="gameOverOverlay">
+        <div class="overlay-content">
+          <h2 class="overlay-title">💫 游戏结束</h2>
+          <p class="final-score">最终得分：<span id="finalScore">0</span></p>
+          <p class="high-score-text">最高分：<span id="finalHighScore">0</span></p>
+          <p class="new-record hidden" id="newRecord">🎉 新纪录！</p>
+          <button class="btn btn-primary" id="restartBtn">再来一局</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-control" id="pauseBtn" disabled>暂停</button>
+      <button class="btn btn-control" id="restartBtn2" disabled>重新开始</button>
+    </div>
+
+    <div class="touch-controls" id="touchControls">
+      <div class="touch-row">
+        <button class="touch-btn" data-direction="up">▲</button>
+      </div>
+      <div class="touch-row">
+        <button class="touch-btn" data-direction="left">◀</button>
+        <button class="touch-btn" data-direction="down">▼</button>
+        <button class="touch-btn" data-direction="right">▶</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
