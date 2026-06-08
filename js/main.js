@@ -166,12 +166,12 @@ function updateChallengeResult() {
   if (completedThisSession) {
     UI.challengeResultStatus.textContent = '🎉 挑战完成！';
     UI.challengeResultStatus.classList.add('success');
-  } else if (alreadyCompletedToday && !completed) {
-    UI.challengeResultStatus.textContent = '今日挑战已完成 ✓';
-    UI.challengeResultStatus.classList.add('already');
   } else if (failed) {
     UI.challengeResultStatus.textContent = failedReason || '挑战未完成';
     UI.challengeResultStatus.classList.add('failed');
+  } else if (alreadyCompletedToday && !completed) {
+    UI.challengeResultStatus.textContent = '今日挑战已完成 ✓';
+    UI.challengeResultStatus.classList.add('already');
   } else if (completed) {
     UI.challengeResultStatus.textContent = '🎉 挑战完成！';
     UI.challengeResultStatus.classList.add('success');

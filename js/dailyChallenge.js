@@ -309,7 +309,7 @@ export class DailyChallengeSystem {
         break;
     }
 
-    const completedThisSession = progress.completed && progress.completedAt && 
+    const completedThisSession = progress.completed && progress.completedAt &&
       progress.completedAt >= progress.startTime;
 
     return {
